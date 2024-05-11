@@ -3,11 +3,12 @@ import json
 import subprocess
 from prettytable import PrettyTable
 
-DOCKER = "docker"
+DOCKER = "podman"
 
 DEPLOYMENT_FILE = "deployment.json"
 
 PRECHECK_LIST = (
+    ("Check IPv4 unprivileged port starts at 443", "[ '$(sysctl -n net.ipv4.ip_unprivileged_port_start)' -eq 443 ] || { echo 'Error: Value is not equal to 443'; exit 1; }", ""),
     ("Test permission to create directory", "mkdir dummy.dir", "rm -rf dummy.dir"),
     ("Test permission to create File", "touch dummy.file", "rm -rf dummy.file"),
     ("Test podman installation", "podman --version", "")
@@ -23,6 +24,13 @@ DEPLOYMENT_LIST = (
 RETIREMENT_LIST = (
     ("Delete Conjur system folders", "rm -rf ./cyberark"),
 )
+
+SYSCTLD_FILE = "/etc/sysctl.d/conjur.conf"
+SYSCTLD_TEXT = " \
+#Allow low port number for rootless Podman \
+net.ipv4.ip_unprivileged_port_start=443 \
+#Increase max user namespaces (for example) \
+user.max_user_namespaces=28633"
 
 #EXCLUDE
 #--network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
@@ -77,6 +85,11 @@ def deploy_model(name: str, type: str, registry: str) -> None:
 
     # Print the deployment details
     print(f"Deploying '{name}' '{type}' node with '{registry}' ...")
+
+    # To enable Podman low port numbers and increase the maximum number of user namespaces
+    with open(SYSCTLD_FILE, 'w') as file:
+        # Write the updated deployment information to the file
+        file.write(SYSCTLD_TEXT)
 
     # Iterate over the deployment list and execute each command
     for deploy_item, deploy_command in DEPLOYMENT_LIST:
@@ -141,6 +154,7 @@ def precheck_model():
     # Loop through PRECHECK_LIST and perform checks
     for check_name, command, cleanup_command in PRECHECK_LIST:
         try:
+            print(command)
             subprocess.run(command, check=True, shell=True)  # Run the check command
             table.add_row([check_name, "Passed"])  # Add row for passed check
             subprocess.run(cleanup_command, check=True, shell=True)  # Cleanup after check

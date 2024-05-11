@@ -1,0 +1,33 @@
+To enable a user to create /etc/sysctl.d/conjur.conf, you need to grant them appropriate permissions or elevate their privileges using sudo. Here's how you can do it:
+
+Using sudo:
+Edit sudoers file:
+
+Run sudo visudo to edit the sudoers file. This ensures proper syntax checking.
+
+Grant permissions:
+
+gclim ALL=(ALL) NOPASSWD: /usr/bin/touch /etc/sysctl.d/conjur.conf
+gclim ALL=(ALL) NOPASSWD: /usr/sbin/sysctl -p
+gclim ALL=(ALL) NOPASSWD: /usr/sbin/sysctl -p /etc/sysctl.d/conjur.conf
+gclim ALL=(ALL) NOPASSWD: /usr/bin/tee -a /etc/sysctl.conf
+
+
+Change Ownership:
+
+Use the chown command to change the ownership of the directory to the gclim group. You'll also need to ensure that the group ownership is preserved:
+
+sudo chown :gclim /etc/sysctl.d
+
+
+echo "net.ipv4.ip_unprivileged_port_start=443" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+
+if [ "$(sysctl -n net.ipv4.ip_unprivileged_port_start)" -ne 443 ]; then
+    exit 1
+fi
+
+[ "$(sysctl -n net.ipv4.ip_unprivileged_port_start)" -eq 443 ] || { echo "Error: Value is not equal to 443"; exit 1; }
+[ "$(sysctl -n net.ipv4.ip_unprivileged_port_start)" -ne 443 ] || { echo "Error: Value is not equal to 443"; exit 1; }
+
