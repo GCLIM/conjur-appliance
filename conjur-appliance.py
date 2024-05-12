@@ -243,7 +243,16 @@ def retire_model():
         # Stop and remove the container
         command = f"{DOCKER} stop {name} && {DOCKER} rm {name}"
         try:
-            subprocess.run(command, check=True, shell=True)
+            service_name = "conjur.service"
+            if is_service_running(service_name):
+                # Stop and disable the service
+                subprocess.run(["systemctl", "--user", "stop", "conjur.service"])
+                subprocess.run(["systemctl", "--user", "disable", "conjur.service"])
+
+            # Reload systemd
+            subprocess.run(["systemctl", "--user", "daemon-reload"])
+            if is_container_running(name):
+                subprocess.run(command, check=True, shell=True)
 
             # Update the deployment status to 'Retired'
             deployment_info["status"] = "Retired"
@@ -255,17 +264,6 @@ def retire_model():
                 subprocess.run(retire_command, check=True, shell=True)
                 print(f"'{retire_item}' done.")
 
-            # Stop and disable the service
-            subprocess.run(["systemctl", "--user", "stop", "conjur.service"])
-            subprocess.run(["systemctl", "--user", "disable", "conjur.service"])
-
-            # Remove the systemd unit file
-            service_file_path = os.path.join(os.environ['HOME'], '.config/systemd/user/conjur.service')
-            if os.path.exists(service_file_path):
-                os.remove(service_file_path)
-
-            # Reload systemd
-            subprocess.run(["systemctl", "--user", "daemon-reload"])
             # Print success message
             print(f"'{name}' retired successfully.")
             return
@@ -345,6 +343,15 @@ def is_container_running(container_name):
     return False
 
 
+def is_service_running(service_name):
+    try:
+        # Run systemctl status <service_name> command
+        subprocess.run(["systemctl", "--user", "status", service_name], check=True)
+        return True  # If the command executed successfully, service is running
+    except subprocess.CalledProcessError:
+        return False  # If the command failed, service is not running
+
+
 def check_deployment_status():
     """
     Retrieves the deployment status and Docker running status.
@@ -361,6 +368,7 @@ def check_deployment_status():
         return "Unknown", False
 
     # Check the status of the deployment
+    service_name = "conjur.service"
     if deployment_info["status"] == "Deployed":
         # Print deployment details
         print(f'Name: {deployment_info["container_name"]}')
@@ -368,10 +376,10 @@ def check_deployment_status():
         print(f'Registry: {deployment_info["registry"]}')
 
         # Return deployment status and Docker running status
-        return "Deployed", is_container_running(deployment_info["container_name"])
+        return "Deployed", is_container_running(deployment_info["container_name"]), is_service_running(service_name)
     else:
         # Return deployment status and Docker running status
-        return "Retired", False
+        return "Retired", False, is_service_running(service_name)
 
 
 def sysctld_config():
@@ -470,12 +478,15 @@ if __name__ == "__main__":
         retire_model()
 
     if args.model == "status":
-        deployment_status, docker_running = check_deployment_status()
+        deployment_status, docker_running, service_running = check_deployment_status()
         if deployment_status == "Unknown":
             print("Deployment status: Unknown")
+            print(f"Conjur appliance running: {docker_running}")
+            print(f"Conjur service enabled: {service_running}")
         else:
             print(f"Deployment status: {deployment_status}")
             print(f"Conjur appliance running: {docker_running}")
+            print(f"Conjur service enabled: {service_running}")
 
     if args.sysctld == "config":
         sysctld_config()
