@@ -352,6 +352,7 @@ if __name__ == "__main__":
     if args.model == "deploy":
         deployment_status, docker_running = check_deployment_status()
         if deployment_status != "Deployed":
+
             if not args.name:
                 parser.print_help()
                 print("Name cannot be empty.")
@@ -367,6 +368,14 @@ if __name__ == "__main__":
                 print("Registry cannot be empty.")
                 print("Usage: -reg, --registry <registry>")
                 exit(1)
+            
+            #Prechceck
+            if precheck_model() == 1:
+                print("Precheck 'Failed'.")
+                exit(1)
+            else:
+                print("Precheck 'Passed'.")
+
             deploy_model(args.name, args.type, args.registry)
         else:
             print(f"Deployment status: Already {deployment_status}")
