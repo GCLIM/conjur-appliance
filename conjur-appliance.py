@@ -4,10 +4,9 @@ import subprocess
 import os
 
 DOCKER = "podman"
-
 DEPLOYMENT_FILE = "deployment.json"
-
 HOME = os.getenv("HOME")
+CONJUR_SERVICE_NAME = "conjur.service"
 
 DEPLOYMENT_LIST = (
     ("Create Conjur system folders", "mkdir -p $HOME/cyberark/conjur/{security,config,backups,seeds,logs}"),
@@ -243,8 +242,8 @@ def retire_model():
         # Stop and remove the container
         command = f"{DOCKER} stop {name} && {DOCKER} rm {name}"
         try:
-            service_name = "conjur.service"
-            if is_service_running(service_name):
+
+            if is_service_running(CONJUR_SERVICE_NAME):
                 # Stop and disable the service
                 subprocess.run(["systemctl", "--user", "stop", "conjur.service"])
                 subprocess.run(["systemctl", "--user", "disable", "conjur.service"])
@@ -365,10 +364,9 @@ def check_deployment_status():
 
     # Check if there is no deployment information
     if not deployment_info:
-        return "Unknown", False
+        return "Unknown", False, is_service_running(CONJUR_SERVICE_NAME)
 
     # Check the status of the deployment
-    service_name = "conjur.service"
     if deployment_info["status"] == "Deployed":
         # Print deployment details
         print(f'Name: {deployment_info["container_name"]}')
@@ -376,10 +374,10 @@ def check_deployment_status():
         print(f'Registry: {deployment_info["registry"]}')
 
         # Return deployment status and Docker running status
-        return "Deployed", is_container_running(deployment_info["container_name"]), is_service_running(service_name)
+        return "Deployed", is_container_running(deployment_info["container_name"]), is_service_running(CONJUR_SERVICE_NAME)
     else:
         # Return deployment status and Docker running status
-        return "Retired", False, is_service_running(service_name)
+        return "Retired", False, is_service_running(CONJUR_SERVICE_NAME)
 
 
 def sysctld_config():
@@ -435,9 +433,8 @@ if __name__ == "__main__":
         parser.print_help()
 
     if args.model == "deploy":
-        deployment_status, docker_running = check_deployment_status()
+        deployment_status, docker_running, service_running = check_deployment_status()
         if deployment_status != "Deployed":
-
             if not args.name:
                 parser.print_help()
                 print("Name cannot be empty.")
@@ -465,6 +462,8 @@ if __name__ == "__main__":
         else:
             print(f"Deployment status: Already {deployment_status}")
             print(f"Conjur appliance running: {docker_running}")
+            print(f"Conjur service enabled: {service_running}")
+
 
     if args.model == "precheck":
         if precheck_model() == 1:
