@@ -74,11 +74,6 @@ def deploy_model(name: str, type: str, registry: str) -> None:
     # Print the deployment details
     print(f"Deploying '{name}' '{type}' node with '{registry}' ...")
 
-    # To enable Podman low port numbers and increase the maximum number of user namespaces
-    with open(SYSCTLD_FILE, 'w') as file:
-        # Write the updated deployment information to the file
-        file.write(SYSCTLD_TEXT)
-
     # Iterate over the deployment list and execute each command
     for deploy_item, deploy_command in DEPLOYMENT_LIST:
         print(f"'{deploy_item}' ...")
@@ -397,7 +392,7 @@ def sysctld_config():
         """)
 
     # Apply the configuration changes using the sysctl command
-    subprocess.run(["sysctl", "-p", SYSCTLD_FILE])
+    subprocess.run(["sudo", "sysctl", "-p", SYSCTLD_FILE])
 
     # Print a message indicating that the sysctld has been configured
     print("Configured sysctld")
