@@ -124,18 +124,18 @@ def deploy_model(name: str, type: str, registry: str) -> None:
         file.write('\n')
 
 
-def check_sysctl_value(name: str, expected_value: int):
+def check_sysctl_value(name, expected_value):
     try:
         # Run the sysctl command to retrieve the value of net.ipv4.ip_unprivileged_port_start
-        result = subprocess.run(["sysctl", "-n", name], capture_output=True, text=True, check=True)
+        result = subprocess.run(["sysctl", "-n", name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
         value = int(result.stdout.strip())  # Convert the output to an integer
         if value != expected_value:
-            raise ValueError(f"Value is not equal to {expected_value}")
+            raise ValueError("Value is not equal to {}".format(expected_value))
     except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
+        print("Error: {}".format(e))
         return 1
     except ValueError as e:
-        print(f"Error: {e}")
+        print("Error: {}".format(e))
         return 1
     else:
         return 0
