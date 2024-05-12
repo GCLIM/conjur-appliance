@@ -1,7 +1,6 @@
 import argparse
 import json
 import subprocess
-from prettytable import PrettyTable
 
 DOCKER = "podman"
 
@@ -140,41 +139,41 @@ def check_sysctl_value(name, expected_value):
     else:
         return 0
 
+
+def check_sysctl_value(name, expected_value):
+    try:
+        result = subprocess.run(["sysctl", "-n", name], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                universal_newlines=True, check=True)
+        value = int(result.stdout.strip())
+        if value != expected_value:
+            raise ValueError("Value is not equal to {}".format(expected_value))
+    except subprocess.CalledProcessError as e:
+        print("Error: {}".format(e))
+        return 1
+    except ValueError as e:
+        print("Error: {}".format(e))
+        return 1
+    else:
+        return 0
+
+
 def precheck_model():
-    """
-    Perform prechecks for model deployment.
-
-    Runs a series of commands from PRECHECK_LIST, captures the status of each check,
-    and returns an exit code based on the overall result.
-
-    Returns:
-        int: The exit code indicating the overall success or failure of the prechecks.
-    """
-    # Print precheck message
     print("Precheck ...")
+    exit_code = 0
 
-    # Initialize PrettyTable for displaying results
-    table = PrettyTable()
-    table.field_names = ["Check List", "Status"]
-    table.align["Check List"] = "l"  # Align the "Check" column to the left
-
-    exit_code = 0  # Initialize exit code
-
-    #Check IPv4 unprivileged port starts at 443
-    print("Check IPv4 unprivileged port starts at 443 ...")
+    # Check IPv4 unprivileged port starts at 443
     if check_sysctl_value("net.ipv4.ip_unprivileged_port_start", 443) == 0:
-        table.add_row(["Check IPv4 unprivileged port starts at 443", "Passed"])  # Add row for passed check
+        print("Check IPv4 unprivileged port starts at 443: Passed")
     else:
-        table.add_row(["Check IPv4 unprivileged port starts at 443", "Failed"])  # Add row for failed check
-        exit_code = 1  # Update exit code to indicate failure
+        print("Check IPv4 unprivileged port starts at 443: Failed")
+        exit_code = 1
 
-    #Check IPv4 unprivileged port starts at 443
-    print("Check user maximum number of namespaces is set to 28633 ...")
+    # Check user maximum number of namespaces is set to 28633
     if check_sysctl_value("user.max_user_namespaces", 28633) == 0:
-        table.add_row(["Check user maximum number of namespaces", "Passed"])  # Add row for passed check
+        print("Check user maximum number of namespaces is set to 28633: Passed")
     else:
-        table.add_row(["Check user maximum number of namespaces", "Failed"])  # Add row for failed check
-        exit_code = 1  # Update exit code to indicate failure
+        print("Check user maximum number of namespaces is set to 28633: Failed")
+        exit_code = 1
 
     PRECHECK_LIST = (
         ("Test permission to create directory", "mkdir dummy.dir", "rm -rf dummy.dir"),
@@ -182,24 +181,20 @@ def precheck_model():
         ("Test podman installation", "podman --version", "")
     )
 
-    # Loop through PRECHECK_LIST and perform checks
     for check_name, command, cleanup_command in PRECHECK_LIST:
         try:
-            print(command)
-            subprocess.run(command, check=True, shell=True)  # Run the check command
-            table.add_row([check_name, "Passed"])  # Add row for passed check
-            subprocess.run(cleanup_command, check=True, shell=True)  # Cleanup after check
+            subprocess.run(command, check=True, shell=True)
+            print(f"{check_name}: Passed")
+            subprocess.run(cleanup_command, check=True, shell=True)
         except subprocess.CalledProcessError as e:
             print(f"Error: {e}")
-            table.add_row([check_name, "Failed"])  # Add row for failed check
-            exit_code = 1  # Update exit code to indicate failure
+            print(f"{check_name}: Failed")
+            exit_code = 1
         finally:
-            subprocess.run(cleanup_command, check=False, shell=True)  # Cleanup regardless of check result
+            subprocess.run(cleanup_command, check=False, shell=True)
 
-    # Print the PrettyTable with results
-    print(table)
+    return exit_code
 
-    return exit_code  # Return the overall exit code
 
 
 def retire_model():
