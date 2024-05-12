@@ -7,11 +7,13 @@ DOCKER = "podman"
 
 DEPLOYMENT_FILE = "deployment.json"
 
+HOME = os.getenv("HOME")
+
 DEPLOYMENT_LIST = (
-    ("Create Conjur system folders", "mkdir -p ./cyberark/conjur/{security,config,backups,seeds,logs}"),
-    ("Create Conjur config file", "touch ./cyberark/conjur/config/conjur.yml"),
-    ("Set permission to conjur directory", "chmod o+x ./cyberark/conjur/config"),
-    ("Set permission to conjur file", "chmod o+r ./cyberark/conjur/config/conjur.yml"),
+    ("Create Conjur system folders", "mkdir -p $HOME/cyberark/conjur/{security,config,backups,seeds,logs}"),
+    ("Create Conjur config file", "touch $HOME/cyberark/conjur/config/conjur.yml"),
+    ("Set permission to conjur directory", "chmod o+x $HOME/cyberark/conjur/config"),
+    ("Set permission to conjur file", "chmod o+r $HOME/cyberark/conjur/config/conjur.yml"),
     ("Create conjur.service folder", "mkdir -p $HOME/.config/systemd/user")
 )
 
@@ -24,7 +26,7 @@ RETIREMENT_LIST = (
 #--network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
 #--security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
 #--log-driver journald \
-DOCKER_PARAMETER_LEADER_STANDBY = " \
+DOCKER_PARAMETER_LEADER_STANDBY = f" \
 --add-host=conjur01.mon.local:172.31.27.126 \
 --detach \
 --publish '443:443' \
@@ -32,25 +34,25 @@ DOCKER_PARAMETER_LEADER_STANDBY = " \
 --publish '5432:5432' \
 --publish '1999:1999' \
 --cap-add AUDIT_WRITE \
---volume ./cyberark/conjur/config:/etc/conjur/config:z \
---volume ./cyberark/conjur/security:/opt/cyberark/conjur/security:z \
---volume ./cyberark/conjur/backups:/opt/conjur/backup:z \
---volume ./cyberark/conjur/logs:/var/log/conjur:z"
+--volume {HOME}/cyberark/conjur/config:/etc/conjur/config:z \
+--volume {HOME}/cyberark/conjur/security:/opt/cyberark/conjur/security:z \
+--volume {HOME}/cyberark/conjur/backups:/opt/conjur/backup:z \
+--volume {HOME}/cyberark/conjur/logs:/var/log/conjur:z"
 
 #EXCLUDE
 #--network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
 #--security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
 #--log-driver journald \
-DOCKER_PARAMETER_FOLLOWER = " \
+DOCKER_PARAMETER_FOLLOWER = f" \
 --add-host=conjur01.mon.local:172.31.27.126 \
 --detach \
 --publish '443:443' \
 --publish '444:444' \
 --cap-add AUDIT_WRITE \
---volume ./cyberark/conjur/config:/etc/conjur/config:z \
---volume ./cyberark/conjur/security:/opt/cyberark/conjur/security:z \
---volume ./cyberark/conjur/backups:/opt/conjur/backup:z \
---volume ./cyberark/conjur/logs:/var/log/conjur:z"
+--volume {HOME}/cyberark/conjur/config:/etc/conjur/config:z \
+--volume {HOME}/cyberark/conjur/security:/opt/cyberark/conjur/security:z \
+--volume {HOME}/cyberark/conjur/backups:/opt/conjur/backup:z \
+--volume {HOME}/cyberark/conjur/logs:/var/log/conjur:z"
 
 
 def deploy_model(name: str, type: str, registry: str) -> None:
@@ -90,6 +92,8 @@ def deploy_model(name: str, type: str, registry: str) -> None:
 
     try:
         # Check the type of the container and set the command accordingly
+
+
         if type in ["leader", "standby"]:
             print(DOCKER_PARAMETER_LEADER_STANDBY)
             command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
@@ -108,23 +112,26 @@ def deploy_model(name: str, type: str, registry: str) -> None:
         deployment_info["status"] = "Failed"
         print(f"'{name}' deployment 'Failed'.")
 
+    # Save the current directory
+    previous_dir = os.getcwd()
+
     # Setup conjur.server
     os.chdir(os.path.join(os.environ['HOME'], '.config/systemd/user/'))
 
     # Create or edit conjur.service file
     with open("conjur.service", "w") as f:
         f.write(f"""[Unit]
-    Description={name} container
+Description={name} container
 
-    [Service]
-    Restart=always
-    ExecStartPre=-/usr/bin/podman stop -t 5 {name}
-    ExecStartPre=-/usr/bin/podman rm {name}
-    ExecStart=/usr/bin/{command}
+[Service]
+Restart=always
+ExecStartPre=-/usr/bin/podman stop -t 5 {name}
+ExecStartPre=-/usr/bin/podman rm {name}
+ExecStart=/usr/bin/{command}
 
-    [Install]
-    WantedBy=default.target
-    """)
+[Install]
+WantedBy=default.target
+""")
 
     # Reload systemd
     subprocess.run(["systemctl", "--user", "daemon-reload"])
@@ -132,6 +139,9 @@ def deploy_model(name: str, type: str, registry: str) -> None:
     # Start and enable the service
     subprocess.run(["systemctl", "--user", "start", "conjur.service"])
     subprocess.run(["systemctl", "--user", "enable", "conjur.service"])
+
+    # Return to the previous directory
+    os.chdir(previous_dir)
 
     # Write the deployment information to a JSON file
     with open(DEPLOYMENT_FILE, 'w') as file:
