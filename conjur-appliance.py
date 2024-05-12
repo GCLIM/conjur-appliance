@@ -250,8 +250,8 @@ def retire_model():
 
             # Reload systemd
             subprocess.run(["systemctl", "--user", "daemon-reload"])
-            if is_container_running(name):
-                subprocess.run(command, check=True, shell=True)
+
+            subprocess.run(command, check=True, shell=True)
 
             # Update the deployment status to 'Retired'
             deployment_info["status"] = "Retired"
