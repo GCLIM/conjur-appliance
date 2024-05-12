@@ -345,7 +345,7 @@ def is_container_running(container_name):
 def is_service_running(service_name):
     try:
         # Run systemctl status <service_name> command
-        subprocess.run(["systemctl", "--user", "status", service_name], check=True)
+        subprocess.run(["systemctl", "--user", "status", service_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
         return True  # If the command executed successfully, service is running
     except subprocess.CalledProcessError:
         return False  # If the command failed, service is not running
