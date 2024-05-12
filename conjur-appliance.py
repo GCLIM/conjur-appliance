@@ -28,7 +28,6 @@ RETIREMENT_LIST = (
 #--log-driver journald \
 DOCKER_PARAMETER_LEADER_STANDBY = f" \
 --add-host=conjur01.mon.local:172.31.27.126 \
---detach \
 --publish '443:443' \
 --publish '444:444' \
 --publish '5432:5432' \
@@ -45,7 +44,6 @@ DOCKER_PARAMETER_LEADER_STANDBY = f" \
 #--log-driver journald \
 DOCKER_PARAMETER_FOLLOWER = f" \
 --add-host=conjur01.mon.local:172.31.27.126 \
---detach \
 --publish '443:443' \
 --publish '444:444' \
 --cap-add AUDIT_WRITE \
@@ -96,10 +94,10 @@ def deploy_model(name: str, type: str, registry: str) -> None:
 
         if type in ["leader", "standby"]:
             print(DOCKER_PARAMETER_LEADER_STANDBY)
-            command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
+            command = f"{DOCKER} run -p 8082:80 --detach --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
         elif type == "follower":
             print(DOCKER_PARAMETER_FOLLOWER)
-            command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
+            command = f"{DOCKER} run -p 8082:80 --detach --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
 
         # Print the starting message and execute the command
         print(f"Starting '{name}'...")
