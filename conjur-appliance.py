@@ -7,13 +7,6 @@ DOCKER = "podman"
 
 DEPLOYMENT_FILE = "deployment.json"
 
-PRECHECK_LIST = (
-    ("Check IPv4 unprivileged port starts at 443", "[ '$(sysctl -n net.ipv4.ip_unprivileged_port_start)' -eq 443 ] || { echo 'Error: Value is not equal to 443'; exit 1; }", ""),
-    ("Test permission to create directory", "mkdir dummy.dir", "rm -rf dummy.dir"),
-    ("Test permission to create File", "touch dummy.file", "rm -rf dummy.file"),
-    ("Test podman installation", "podman --version", "")
-)
-
 DEPLOYMENT_LIST = (
     ("Create Conjur system folders",        "mkdir -p ./cyberark/conjur/{security,config,backups,seeds,logs}"),
     ("Create Conjur config file",           "touch ./cyberark/conjur/config/conjur.yml"),
@@ -131,6 +124,22 @@ def deploy_model(name: str, type: str, registry: str) -> None:
         file.write('\n')
 
 
+def check_sysctl_value(name: str, expected_value: int):
+    try:
+        # Run the sysctl command to retrieve the value of net.ipv4.ip_unprivileged_port_start
+        result = subprocess.run(["sysctl", "-n", name], capture_output=True, text=True, check=True)
+        value = int(result.stdout.strip())  # Convert the output to an integer
+        if value != expected_value:
+            raise ValueError(f"Value is not equal to {expected_value}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        return 1
+    except ValueError as e:
+        print(f"Error: {e}")
+        return 1
+    else:
+        return 0
+
 def precheck_model():
     """
     Perform prechecks for model deployment.
@@ -150,6 +159,28 @@ def precheck_model():
     table.align["Check List"] = "l"  # Align the "Check" column to the left
 
     exit_code = 0  # Initialize exit code
+
+    #Check IPv4 unprivileged port starts at 443
+    print("Check IPv4 unprivileged port starts at 443 ...")
+    if check_sysctl_value("net.ipv4.ip_unprivileged_port_start", 443) == 0:
+        table.add_row(["Check IPv4 unprivileged port starts at 443", "Passed"])  # Add row for passed check
+    else:
+        table.add_row(["Check IPv4 unprivileged port starts at 443", "Failed"])  # Add row for failed check
+        exit_code = 1  # Update exit code to indicate failure
+
+    #Check IPv4 unprivileged port starts at 443
+    print("Check user maximum number of namespaces is set to 28633 ...")
+    if check_sysctl_value("user.max_user_namespaces", 28633) == 0:
+        table.add_row(["Check user maximum number of namespaces", "Passed"])  # Add row for passed check
+    else:
+        table.add_row(["Check user maximum number of namespaces", "Failed"])  # Add row for failed check
+        exit_code = 1  # Update exit code to indicate failure
+
+    PRECHECK_LIST = (
+        ("Test permission to create directory", "mkdir dummy.dir", "rm -rf dummy.dir"),
+        ("Test permission to create File", "touch dummy.file", "rm -rf dummy.file"),
+        ("Test podman installation", "podman --version", "")
+    )
 
     # Loop through PRECHECK_LIST and perform checks
     for check_name, command, cleanup_command in PRECHECK_LIST:
