@@ -31,3 +31,47 @@ fi
 [ "$(sysctl -n net.ipv4.ip_unprivileged_port_start)" -eq 443 ] || { echo "Error: Value is not equal to 443"; exit 1; }
 [ "$(sysctl -n net.ipv4.ip_unprivileged_port_start)" -ne 443 ] || { echo "Error: Value is not equal to 443"; exit 1; }
 
+-----
+mkdir -p $HOME/.config/systemd/user
+podman generate systemd myapp --name --container-prefix="" --separator="" > $HOME/.config/systemd/user/conjur.service
+systemctl --user enable conjur.service
+
+
+[gclim@conjur01 conjur-appliance]$ podman generate systemd myapp --name --container-prefix="" --separator="" > $HOME/.config/systemd/user/conjur.service
+
+DEPRECATED command:
+It is recommended to use Quadlets for running containers and pods under systemd.
+
+Please refer to podman-systemd.unit(5) for details.
+
+-----
+cd $HOME/.config/systemd/user/
+nano conjur.service
+[Unit]
+Description=MyApp container
+
+[Service]
+Restart=always
+ExecStartPre=-/usr/bin/podman stop -t 5 myapp
+ExecStartPre=-/usr/bin/podman rm myapp
+ExecStart=/usr/bin/podman run -p 8082:80 --name myapp dockerhub.gcloud101.com/my-sample-app
+[Install]
+WantedBy=default.target
+
+Reload systemd:
+systemctl --user daemon-reload
+
+Start and enable your service:
+systemctl --user start conjur.service
+systemctl --user enable conjur.service
+
+run -p 8082:80 --name myapp dockerhub.gcloud101.com/my-sample-app
+
+
+-----
+To remove:
+
+systemctl --user stop conjur.service
+systemctl --user disable conjur.service
+rm $HOME/.config/systemd/user/conjur.service
+systemctl --user daemon-reload
