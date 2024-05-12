@@ -1,6 +1,7 @@
 import argparse
 import json
 import subprocess
+import os
 
 DOCKER = "podman"
 
@@ -18,13 +19,6 @@ RETIREMENT_LIST = (
     ("Delete Conjur system folders", "rm -rf ./cyberark"),
     ("Delete conjur.service file", "rm $HOME/.config/systemd/user/conjur.service"),
 )
-
-SYSCTLD_FILE = "/etc/sysctl.d/conjur.conf"
-SYSCTLD_TEXT = " \
-#Allow low port number for rootless Podman \
-net.ipv4.ip_unprivileged_port_start=443 \
-#Increase max user namespaces (for example) \
-user.max_user_namespaces=28633"
 
 #EXCLUDE
 #--network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
@@ -374,6 +368,41 @@ def check_deployment_status():
         return "Retired", False
 
 
+def sysctld_config():
+    """
+    Configure sysctl parameters for Podman rootless mode.
+
+    This function creates a configuration file (/etc/sysctl.d/conjur.conf)
+    with the necessary sysctl parameters for Podman rootless mode. It also
+    applies the configuration changes using the sysctl command.
+
+    Returns:
+        None
+    """
+
+    # Define the configuration file path
+    SYSCTLD_FILE = "/etc/sysctl.d/conjur.conf"
+
+    # Change the current working directory to /etc/sysctl.d/
+    os.chdir("/etc/sysctl.d/")
+
+    # Open the configuration file in write mode
+    with open(SYSCTLD_FILE, "w") as f:
+        # Write the sysctl parameters to the file
+        f.write("""
+        # Allow low port number for rootless Podman
+        net.ipv4.ip_unprivileged_port_start=443
+        # Increase max user namespaces (for example)
+        user.max_user_namespaces=28633
+        """)
+
+    # Apply the configuration changes using the sysctl command
+    subprocess.run(["sysctl", "-p", SYSCTLD_FILE])
+
+    # Print a message indicating that the sysctld has been configured
+    print("Configured sysctld")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deploy Conjur container image.",
                                      formatter_class=argparse.RawTextHelpFormatter,
@@ -384,6 +413,7 @@ if __name__ == "__main__":
                         help="leader\nstandby\nfollower")
     parser.add_argument("-n", "--name", type=str, help="container name")
     parser.add_argument("-reg", "--registry", type=str, help="Registry of the docker image")
+    parser.add_argument("-sys", "--sysctld", type=str, help="config")
     args = parser.parse_args()
 
     # Check if no arguments are provided, then print help
@@ -440,3 +470,6 @@ if __name__ == "__main__":
         else:
             print(f"Deployment status: {deployment_status}")
             print(f"Conjur appliance running: {docker_running}")
+
+    if args.sysctld == "config":
+        sysctld_config()
