@@ -7,14 +7,16 @@ DOCKER = "podman"
 DEPLOYMENT_FILE = "deployment.json"
 
 DEPLOYMENT_LIST = (
-    ("Create Conjur system folders",        "mkdir -p ./cyberark/conjur/{security,config,backups,seeds,logs}"),
-    ("Create Conjur config file",           "touch ./cyberark/conjur/config/conjur.yml"),
-    ("Set permission to conjur directory",  "chmod o+x ./cyberark/conjur/config"),
-    ("Set permission to conjur file",       "chmod o+r ./cyberark/conjur/config/conjur.yml"),
+    ("Create Conjur system folders", "mkdir -p ./cyberark/conjur/{security,config,backups,seeds,logs}"),
+    ("Create Conjur config file", "touch ./cyberark/conjur/config/conjur.yml"),
+    ("Set permission to conjur directory", "chmod o+x ./cyberark/conjur/config"),
+    ("Set permission to conjur file", "chmod o+r ./cyberark/conjur/config/conjur.yml"),
+    ("Create conjur.service folder", "mkdir -p $HOME/.config/systemd/user")
 )
 
 RETIREMENT_LIST = (
     ("Delete Conjur system folders", "rm -rf ./cyberark"),
+    ("Delete conjur.service file", "rm $HOME/.config/systemd/user/conjur.service"),
 )
 
 SYSCTLD_FILE = "/etc/sysctl.d/conjur.conf"
@@ -117,6 +119,31 @@ def deploy_model(name: str, type: str, registry: str) -> None:
         deployment_info["status"] = "Failed"
         print(f"'{name}' deployment 'Failed'.")
 
+    # Setup conjur.server
+    os.chdir(os.path.join(os.environ['HOME'], '.config/systemd/user/'))
+
+    # Create or edit conjur.service file
+    with open("conjur.service", "w") as f:
+        f.write(f"""[Unit]
+    Description={name} container
+
+    [Service]
+    Restart=always
+    ExecStartPre=-/usr/bin/podman stop -t 5 {name}
+    ExecStartPre=-/usr/bin/podman rm {name}
+    ExecStart=/usr/bin/{command}
+
+    [Install]
+    WantedBy=default.target
+    """)
+
+    # Reload systemd
+    subprocess.run(["systemctl", "--user", "daemon-reload"])
+
+    # Start and enable the service
+    subprocess.run(["systemctl", "--user", "start", "conjur.service"])
+    subprocess.run(["systemctl", "--user", "enable", "conjur.service"])
+
     # Write the deployment information to a JSON file
     with open(DEPLOYMENT_FILE, 'w') as file:
         json.dump(deployment_info, file)
@@ -126,7 +153,8 @@ def deploy_model(name: str, type: str, registry: str) -> None:
 def check_sysctl_value(name, expected_value):
     try:
         # Run the sysctl command to retrieve the value of net.ipv4.ip_unprivileged_port_start
-        result = subprocess.run(["sysctl", "-n", name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
+        result = subprocess.run(["sysctl", "-n", name], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                universal_newlines=True, check=True)
         value = int(result.stdout.strip())  # Convert the output to an integer
         if value != expected_value:
             raise ValueError("Value is not equal to {}".format(expected_value))
@@ -196,7 +224,6 @@ def precheck_model():
     return exit_code
 
 
-
 def retire_model():
     """
     Retires a model based on its deployment status.
@@ -228,13 +255,26 @@ def retire_model():
                 subprocess.run(retire_command, check=True, shell=True)
                 print(f"'{retire_item}' done.")
 
+            # Stop and disable the service
+            subprocess.run(["systemctl", "--user", "stop", "conjur.service"])
+            subprocess.run(["systemctl", "--user", "disable", "conjur.service"])
+
+            # Remove the systemd unit file
+            service_file_path = os.path.join(os.environ['HOME'], '.config/systemd/user/conjur.service')
+            if os.path.exists(service_file_path):
+                os.remove(service_file_path)
+
+            # Reload systemd
+            subprocess.run(["systemctl", "--user", "daemon-reload"])
             # Print success message
             print(f"'{name}' retired successfully.")
             return
+
         except subprocess.CalledProcessError as e:
             # Print error message and return
             print(f"Error: {e}")
             return
+
     else:
         # Print message if the deployment status is not 'Deployed'
         print(f"The deployment status for '{name}' is not 'Deployed'.")
@@ -335,7 +375,8 @@ def check_deployment_status():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Deploy Conjur container image.", formatter_class=argparse.RawTextHelpFormatter,
+    parser = argparse.ArgumentParser(description="Deploy Conjur container image.",
+                                     formatter_class=argparse.RawTextHelpFormatter,
                                      add_help=True)
     parser.add_argument("-m", "--model", type=str,
                         help="deploy: deploy Conjur image\nprecheck: pre-check operating system\nretire: retire Conjur deployment\nstatus: check deployment status")
@@ -368,7 +409,7 @@ if __name__ == "__main__":
                 print("Registry cannot be empty.")
                 print("Usage: -reg, --registry <registry>")
                 exit(1)
-            
+
             #Prechceck
             if precheck_model() == 1:
                 print("Precheck 'Failed'.")
