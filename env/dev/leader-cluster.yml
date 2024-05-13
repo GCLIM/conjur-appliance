@@ -1,0 +1,14 @@
+# env/dev/leader-cluster.yml
+# Template
+kind: leader-cluster
+
+conjur02.gcloud101.com:
+    type: leader
+    name: myapp1
+    registry: dockerhub.gcloud101.com/my-sample-app
+
+conjur03.gcloud101.com:
+    type: standby
+    name: myapp2
+    registry: dockerhub.gcloud101.com/my-sample-app
+
