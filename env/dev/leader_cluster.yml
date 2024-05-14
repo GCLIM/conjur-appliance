@@ -1,0 +1,25 @@
+# env/dev/leader-cluster.yml
+# Template
+kind: leader-cluster
+
+#specify <load-balancer-dns>
+hostname: load-balancer-dns
+
+#specify <account-name>
+account-name: default
+
+conjur02.gcloud101.com:
+    type: leader
+    name: leadernode
+    registry: dockerhub.gcloud101.com/my-sample-app
+
+conjur03.gcloud101.com:
+    type: standby
+    name: standbynode1
+    registry: dockerhub.gcloud101.com/my-sample-app
+
+conjur04.gcloud101.com:
+    type: standby
+    name: standbynode2
+    registry: dockerhub.gcloud101.com/my-sample-app
+
