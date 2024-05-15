@@ -17,7 +17,7 @@ Change Ownership:
 
 Use the chown command to change the ownership of the directory to the gclim group. You'll also need to ensure that the group ownership is preserved:
 
-sudo chown :gclim /etc/sysctl.d
+sudo chown gclim:gclim /etc/sysctl.d
 
 
 echo "net.ipv4.ip_unprivileged_port_start=443" | sudo tee -a /etc/sysctl.conf
