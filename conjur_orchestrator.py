@@ -79,11 +79,11 @@ def leader_deployment_model(yaml_file):
         print(f"Type: {info['type']}")
         print(f"Name: {info['name']}")
         print(f"Registry: {info['registry']}")
-        # conjur_appliance.deploy_model(
-        #     name=info["name"],
-        #     type=info["type"],
-        #     registry=info["registry"]
-        # )
+        conjur_appliance.deploy_model(
+            name=info["name"],
+            type=info["type"],
+            registry=info["registry"]
+        )
         print(f"Leader cluster name: {hostname}")
         print(f"Account name: {account_name}")
         print(f"Leader cluster nodes: {read_leader_cluster_hostnames(yaml_file)}")
@@ -92,7 +92,7 @@ def leader_deployment_model(yaml_file):
 {DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
 --leader-altnames {leader_altnames} --admin-password MySecretPass1 {account_name}"""
         print(command)
-        print(f"Leader cluster deployment complete.")
+        print(f"Leader cluster leader node deployment complete.")
 
     #check if deploying sync standy node
     if info['type'] == 'standby':
@@ -100,7 +100,12 @@ def leader_deployment_model(yaml_file):
         print(f"Type: {info['type']}")
         print(f"Name: {info['name']}")
         print(f"Registry: {info['registry']}")
-
+        conjur_appliance.deploy_model(
+            name=info["name"],
+            type=info["type"],
+            registry=info["registry"]
+        )
+        print(f"Leader cluster standby node deployment complete.")
     return
 
 
