@@ -31,10 +31,27 @@ jobs:
               with:
                     ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-            - name: Deploy code
+            - name: Deploy Leader Cluster Node 1
               uses: appleboy/ssh-action@master
               with:
                     host: ${{ vars.TARGET_HOST_1 }}
+                    username: ${{ vars.USER }}
+                    key: ${{ secrets.SSH_PRIVATE_KEY }}
+                    script: |
+                        if [ -d conjur-appliance ]; then
+                          echo conjur-appliance directory existed
+                          echo clean up for redeployment
+                          rm -Rf conjur-appliance
+                        fi
+                        git clone https://github.com/GCLIM/conjur-appliance.git
+                        cd conjur-appliance
+                        git checkout master
+                        python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
+
+            - name: Deploy Leader Cluster Node 2
+              uses: appleboy/ssh-action@master
+              with:
+                    host: ${{ vars.TARGET_HOST_2 }}
                     username: ${{ vars.USER }}
                     key: ${{ secrets.SSH_PRIVATE_KEY }}
                     script: |
