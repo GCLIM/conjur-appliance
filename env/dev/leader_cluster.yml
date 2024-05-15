@@ -6,20 +6,27 @@ kind: leader-cluster
 hostname: load-balancer-dns
 
 #specify <account-name>
-account-name: default
+account_name: default
 
+#specify default_registry for docker image
+default_registry: dockerhub.gcloud101.com/my-sample-app
+#specify leader-cluster node specification:
+#hostname:
+    #type: [leader|standby]
+    #name: <container_name>
+    #registry: container registry for docker image  (optional)
+
+#specify leader node
 conjur02.gcloud101.com:
     type: leader
     name: leadernode
-    registry: dockerhub.gcloud101.com/my-sample-app
 
+#specify standby node with sync_replication enabled
 conjur03.gcloud101.com:
     type: standby
     name: standbynode1
-    registry: dockerhub.gcloud101.com/my-sample-app
 
+#specify standby node
 conjur04.gcloud101.com:
     type: standby
     name: standbynode2
-    registry: dockerhub.gcloud101.com/my-sample-app
-

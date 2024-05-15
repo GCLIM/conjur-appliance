@@ -13,7 +13,14 @@ def lookup_by_hostname(yaml_file, hostname):
     if hostname in data:
         info = data[hostname]
         print(f"Deployment info for host '{hostname}': {info}")
-        return info
+        host_info = {
+            "type": info["type"],
+            "name": info["name"],
+            "registry": ""
+        }
+        if "registry" in info:
+            host_info["registry"] = info["registry"]
+        return host_info
     else:
         print(f"No deployment information found for host '{hostname}'")
         return None
@@ -36,8 +43,8 @@ def read_leader_cluster_requirements(yaml_file):
     kind = data.get('kind')
     hostname = data.get('hostname')
     account_name = data.get('account-name')
-
-    return kind, hostname, account_name
+    default_registry = data.get('default_registry')
+    return kind, hostname, account_name, default_registry
 
 
 def read_leader_cluster_hostnames(yaml_file):
@@ -45,7 +52,7 @@ def read_leader_cluster_hostnames(yaml_file):
         data = yaml.safe_load(file)
 
     # Extract all keys except known top-level keys
-    known_keys = {'kind', 'hostname', 'account-name'}
+    known_keys = {'kind', 'hostname', 'account_name', 'default_registry'}
     hostnames = [key for key in data if key not in known_keys]
 
     return hostnames
@@ -53,18 +60,22 @@ def read_leader_cluster_hostnames(yaml_file):
 
 def leader_deployment_model(yaml_file):
     current_hostname = resolve_current_hostname()
-    info = lookup_by_hostname(yaml_file, current_hostname)
-    kind, hostname, account_name = read_leader_cluster_requirements(yaml_file)
+    kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
 
     if kind != 'leader-cluster':
-        print(f"Invalid kind: {kind}, expects 'leader-cluster'")
+        print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
         exit(1)
 
+    info = lookup_by_hostname(yaml_file, current_hostname)
     if info is None:
         exit(1)
 
+    if info['registry'] == "":
+        info['registry'] = default_registry
+
+    #check if deploying leader node
     if info['type'] == 'leader':
-        print(f"Deploying leader cluster...")
+        print(f"Deploying leader cluster for leader node ...")
         print(f"Type: {info['type']}")
         print(f"Name: {info['name']}")
         print(f"Registry: {info['registry']}")
@@ -82,8 +93,13 @@ def leader_deployment_model(yaml_file):
 --leader-altnames {leader_altnames} --admin-password MySecretPass1 {account_name}"""
         print(command)
         print(f"Leader cluster deployment complete.")
+
+    #check if deploying sync standy node
     if info['type'] == 'standby':
-        print(f"Standby cluster deployment not supported.")
+        print(f"Deploying leader cluster for standby node ...")
+        print(f"Type: {info['type']}")
+        print(f"Name: {info['name']}")
+        print(f"Registry: {info['registry']}")
 
     return
 
@@ -101,7 +117,7 @@ if __name__ == "__main__":
     if not any(vars(args).values()):
         parser.print_help()
 
-    if args.deploy == "leader":
+    if args.deploy in ["leader"]:
         #check if file exist for arg.file
         if not args.file:
             parser.print_help()
