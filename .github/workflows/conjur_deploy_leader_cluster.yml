@@ -38,12 +38,12 @@ jobs:
                     username: ${{ vars.USER }}
                     key: ${{ secrets.SSH_PRIVATE_KEY }}
                     script: |
-                        if [ -d conjur ]; then
-                          echo Conjur directory existed
+                        if [ -d conjur-appliance ]; then
+                          echo conjur-appliance directory existed
                           echo clean up for redeployment
-                          rm -Rf conjur
+                          rm -Rf conjur-appliance
                         fi
-                        git clone https://github.com/GCLIM/conjur-appliance.git conjur
-                        cd conjur
+                        git clone https://github.com/GCLIM/conjur-appliance.git
+                        cd conjur-appliance
                         git checkout master
                         python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
