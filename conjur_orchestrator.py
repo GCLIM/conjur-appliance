@@ -42,7 +42,7 @@ def read_leader_cluster_requirements(yaml_file):
 
     kind = data.get('kind')
     hostname = data.get('hostname')
-    account_name = data.get('account-name')
+    account_name = data.get('account_name')
     default_registry = data.get('default_registry')
     return kind, hostname, account_name, default_registry
 
