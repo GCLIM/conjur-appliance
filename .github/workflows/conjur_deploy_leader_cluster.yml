@@ -23,53 +23,54 @@ on:
 
 jobs:
     Pre-Checks:
-    runs-on: conjur03
-    environment: ${{ github.event.inputs.environment }}
-    steps:
-        - uses: actions/checkout@v4
-        - uses: webfactory/ssh-agent@v0.9.0
-          with:
-                ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        runs-on: conjur03
+        environment: ${{ github.event.inputs.environment }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: webfactory/ssh-agent@v0.9.0
+              with:
+                    ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-        - name: Deploy Leader Cluster Node 1
-          uses: appleboy/ssh-action@master
-          with:
-                host: ${{ vars.TARGET_HOST_1 }}
-                username: ${{ vars.USER }}
-                key: ${{ secrets.SSH_PRIVATE_KEY }}
-                script: |
-                    # Check if the directory 'conjur-appliance' exists
-                    if [ -d "conjur-appliance" ]; then
-                      # If it exists, navigate to it and pull the latest changes from the repository
-                      git -C conjur-appliance pull
-                    else
-                      # If it does not exist, clone the repository from GitHub
-                      git clone https://github.com/GCLIM/conjur-appliance.git
-                    fi
-                    # Change to the 'conjur-appliance' directory and run the Python script
-                    cd conjur-appliance && \
-                    python3 conjur_appliance.py -m precheck
+            - name: Deploy Leader Cluster Node 1
+              uses: appleboy/ssh-action@master
+              with:
+                    host: ${{ vars.TARGET_HOST_1 }}
+                    username: ${{ vars.USER }}
+                    key: ${{ secrets.SSH_PRIVATE_KEY }}
+                    script: |
+                        # Check if the directory 'conjur-appliance' exists
+                        if [ -d "conjur-appliance" ]; then
+                          # If it exists, navigate to it and pull the latest changes from the repository
+                          git -C conjur-appliance pull
+                        else
+                          # If it does not exist, clone the repository from GitHub
+                          git clone https://github.com/GCLIM/conjur-appliance.git
+                        fi
+                        # Change to the 'conjur-appliance' directory and run the Python script
+                        cd conjur-appliance && \
+                        python3 conjur_appliance.py -m precheck
 
-        - name: Deploy Leader Cluster Node 2
-          uses: appleboy/ssh-action@master
-          with:
-                host: ${{ vars.TARGET_HOST_2 }}
-                username: ${{ vars.USER }}
-                key: ${{ secrets.SSH_PRIVATE_KEY }}
-                script: |
-                    # Check if the directory 'conjur-appliance' exists
-                    if [ -d "conjur-appliance" ]; then
-                      # If it exists, navigate to it and pull the latest changes from the repository
-                      git -C conjur-appliance pull
-                    else
-                      # If it does not exist, clone the repository from GitHub
-                      git clone https://github.com/GCLIM/conjur-appliance.git
-                    fi
-                    # Change to the 'conjur-appliance' directory and run the Python script
-                    cd conjur-appliance && \
-                    python3 conjur_appliance.py -m precheck
+            - name: Deploy Leader Cluster Node 2
+              uses: appleboy/ssh-action@master
+              with:
+                    host: ${{ vars.TARGET_HOST_2 }}
+                    username: ${{ vars.USER }}
+                    key: ${{ secrets.SSH_PRIVATE_KEY }}
+                    script: |
+                        # Check if the directory 'conjur-appliance' exists
+                        if [ -d "conjur-appliance" ]; then
+                          # If it exists, navigate to it and pull the latest changes from the repository
+                          git -C conjur-appliance pull
+                        else
+                          # If it does not exist, clone the repository from GitHub
+                          git clone https://github.com/GCLIM/conjur-appliance.git
+                        fi
+                        # Change to the 'conjur-appliance' directory and run the Python script
+                        cd conjur-appliance && \
+                        python3 conjur_appliance.py -m precheck
 
     Deploy_Leader_Cluster:
+        needs: Pre-Checks
         runs-on: conjur03
         environment: ${{ github.event.inputs.environment }}
         steps:
