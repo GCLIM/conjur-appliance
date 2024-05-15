@@ -22,7 +22,7 @@ on:
         required: true
 
 jobs:
-    Deploy Leader Cluster:
+    Deploy_Leader_Cluster:
         runs-on: conjur03
         environment: ${{ github.event.inputs.environment }}
         steps:
