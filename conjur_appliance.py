@@ -71,83 +71,88 @@ def deploy_model(name: str, type: str, registry: str) -> None:
 
     Writes deployment information to a JSON file.
     """
+    deployment_status, docker_running, service_running = check_deployment_status()
+    if deployment_status != "Deployed":
 
-    # Print the deployment details
-    print(f"Deploying '{name}' '{type}' node with '{registry}' ...")
+        # Print the deployment details
+        print(f"Deploying '{name}' '{type}' node with '{registry}' ...")
 
-    # Iterate over the deployment list and execute each command
-    for deploy_item, deploy_command in DEPLOYMENT_LIST:
-        print(f"'{deploy_item}' ...")
-        subprocess.run(deploy_command, check=True, shell=True)
-        print(f"'{deploy_item}' done.")
+        # Iterate over the deployment list and execute each command
+        for deploy_item, deploy_command in DEPLOYMENT_LIST:
+            print(f"'{deploy_item}' ...")
+            subprocess.run(deploy_command, check=True, shell=True)
+            print(f"'{deploy_item}' done.")
 
-    # Create a dictionary to store deployment information
-    deployment_info = {
-        "container_name": name,
-        "type": type,
-        "registry": registry,
-        "status": ""
-    }
+        # Create a dictionary to store deployment information
+        deployment_info = {
+            "container_name": name,
+            "type": type,
+            "registry": registry,
+            "status": ""
+        }
 
-    try:
-        # Check the type of the container and set the command accordingly
+        try:
+            # Check the type of the container and set the command accordingly
 
 
-        if type in ["leader", "standby"]:
-            print(DOCKER_PARAMETER_LEADER_STANDBY)
-            command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
-        elif type == "follower":
-            print(DOCKER_PARAMETER_FOLLOWER)
-            command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
+            if type in ["leader", "standby"]:
+                print(DOCKER_PARAMETER_LEADER_STANDBY)
+                command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
+            elif type == "follower":
+                print(DOCKER_PARAMETER_FOLLOWER)
+                command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
 
-        # Print the starting message and execute the command
-        print(f"Starting '{name}'...")
-        subprocess.run(command, check=True, shell=True)
-        deployment_info["status"] = "Deployed"
-        print(f"'{name}' is 'Deployed'.")
-    except subprocess.CalledProcessError as e:
-        # Print the error message and update the deployment status
-        print(f"Error: {e}")
-        deployment_info["status"] = "Failed"
-        print(f"'{name}' deployment 'Failed'.")
+            # Print the starting message and execute the command
+            print(f"Starting '{name}'...")
+            subprocess.run(command, check=True, shell=True)
+            deployment_info["status"] = "Deployed"
+            print(f"'{name}' is 'Deployed'.")
+        except subprocess.CalledProcessError as e:
+            # Print the error message and update the deployment status
+            print(f"Error: {e}")
+            deployment_info["status"] = "Failed"
+            print(f"'{name}' deployment 'Failed'.")
 
-    # Save the current directory
-    previous_dir = os.getcwd()
+        # Save the current directory
+        previous_dir = os.getcwd()
 
-    # Setup conjur.server
-    os.chdir(os.path.join(os.environ['HOME'], '.config/systemd/user/'))
+        # Setup conjur.server
+        os.chdir(os.path.join(os.environ['HOME'], '.config/systemd/user/'))
 
-    # Create or edit conjur.service file
-    command_without_detach = command.replace("--detach ", "")
-    with open("conjur.service", "w") as f:
-        f.write(f"""[Unit]
-Description={name} container
+        # Create or edit conjur.service file
+        command_without_detach = command.replace("--detach ", "")
+        with open("conjur.service", "w") as f:
+            f.write(f"""[Unit]
+    Description={name} container
+    
+    [Service]
+    Restart=always
+    ExecStartPre=-/usr/bin/podman stop -t 5 {name}
+    ExecStartPre=-/usr/bin/podman rm {name}
+    ExecStart=/usr/bin/{command_without_detach}
+    
+    [Install]
+    WantedBy=default.target
+    """)
 
-[Service]
-Restart=always
-ExecStartPre=-/usr/bin/podman stop -t 5 {name}
-ExecStartPre=-/usr/bin/podman rm {name}
-ExecStart=/usr/bin/{command_without_detach}
+        # Reload systemd
+        subprocess.run(["systemctl", "--user", "daemon-reload"])
 
-[Install]
-WantedBy=default.target
-""")
+        # Start and enable the service
+        subprocess.run(["systemctl", "--user", "start", "conjur.service"])
+        subprocess.run(["systemctl", "--user", "enable", "conjur.service"])
 
-    # Reload systemd
-    subprocess.run(["systemctl", "--user", "daemon-reload"])
+        # Return to the previous directory
+        os.chdir(previous_dir)
 
-    # Start and enable the service
-    subprocess.run(["systemctl", "--user", "start", "conjur.service"])
-    subprocess.run(["systemctl", "--user", "enable", "conjur.service"])
-
-    # Return to the previous directory
-    os.chdir(previous_dir)
-
-    # Write the deployment information to a JSON file
-    with open(DEPLOYMENT_FILE, 'w') as file:
-        json.dump(deployment_info, file)
-        file.write('\n')
-
+        # Write the deployment information to a JSON file
+        with open(DEPLOYMENT_FILE, 'w') as file:
+            json.dump(deployment_info, file)
+            file.write('\n')
+    else:
+        print(f"Deployment status: Already {deployment_status}")
+        print(f"Conjur appliance running: {docker_running}")
+        print(f"Conjur service enabled: {service_running}")
 
 def check_sysctl_value(name, expected_value):
     try:
@@ -433,36 +438,31 @@ if __name__ == "__main__":
         parser.print_help()
 
     if args.model == "deploy":
-        deployment_status, docker_running, service_running = check_deployment_status()
-        if deployment_status != "Deployed":
-            if not args.name:
-                parser.print_help()
-                print("Name cannot be empty.")
-                print("Usage: -n, --name <name>")
-                exit(1)
-            if args.type not in ["leader", "standby", "follower"]:
-                parser.print_help()
-                print("Type must be 'leader', 'standby' or 'follower'.")
-                print("Usage: -t, --type leader|standby|follower")
-                exit(1)
-            if not args.registry:
-                parser.print_help()
-                print("Registry cannot be empty.")
-                print("Usage: -reg, --registry <registry>")
-                exit(1)
+        if not args.name:
+            parser.print_help()
+            print("Name cannot be empty.")
+            print("Usage: -n, --name <name>")
+            exit(1)
+        if args.type not in ["leader", "standby", "follower"]:
+            parser.print_help()
+            print("Type must be 'leader', 'standby' or 'follower'.")
+            print("Usage: -t, --type leader|standby|follower")
+            exit(1)
+        if not args.registry:
+            parser.print_help()
+            print("Registry cannot be empty.")
+            print("Usage: -reg, --registry <registry>")
+            exit(1)
 
-            #Prechceck
-            if precheck_model() == 1:
-                print("Precheck 'Failed'.")
-                exit(1)
-            else:
-                print("Precheck 'Passed'.")
-
-            deploy_model(args.name, args.type, args.registry)
+        #Prechceck
+        if precheck_model() == 1:
+            print("Precheck 'Failed'.")
+            exit(1)
         else:
-            print(f"Deployment status: Already {deployment_status}")
-            print(f"Conjur appliance running: {docker_running}")
-            print(f"Conjur service enabled: {service_running}")
+            print("Precheck 'Passed'.")
+
+        deploy_model(args.name, args.type, args.registry)
+
 
 
     if args.model == "precheck":
