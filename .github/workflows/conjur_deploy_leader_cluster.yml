@@ -38,14 +38,16 @@ jobs:
                     username: ${{ vars.USER }}
                     key: ${{ secrets.SSH_PRIVATE_KEY }}
                     script: |
-                        if [ -d conjur-appliance ]; then
-                          echo conjur-appliance directory existed
-                          echo clean up for redeployment
-                          rm -Rf conjur-appliance
+                        # Check if the directory 'conjur-appliance' exists
+                        if [ -d "conjur-appliance" ]; then
+                          # If it exists, navigate to it and pull the latest changes from the repository
+                          git -C conjur-appliance pull
+                        else
+                          # If it does not exist, clone the repository from GitHub
+                          git clone https://github.com/GCLIM/conjur-appliance.git
                         fi
-                        git clone https://github.com/GCLIM/conjur-appliance.git
-                        cd conjur-appliance
-                        git checkout master
+                        # Change to the 'conjur-appliance' directory and run the Python script
+                        cd conjur-appliance && \
                         python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
 
             - name: Deploy Leader Cluster Node 2
@@ -55,12 +57,14 @@ jobs:
                     username: ${{ vars.USER }}
                     key: ${{ secrets.SSH_PRIVATE_KEY }}
                     script: |
-                        if [ -d conjur-appliance ]; then
-                          echo conjur-appliance directory existed
-                          echo clean up for redeployment
-                          rm -Rf conjur-appliance
+                        # Check if the directory 'conjur-appliance' exists
+                        if [ -d "conjur-appliance" ]; then
+                          # If it exists, navigate to it and pull the latest changes from the repository
+                          git -C conjur-appliance pull
+                        else
+                          # If it does not exist, clone the repository from GitHub
+                          git clone https://github.com/GCLIM/conjur-appliance.git
                         fi
-                        git clone https://github.com/GCLIM/conjur-appliance.git
-                        cd conjur-appliance
-                        git checkout master
+                        # Change to the 'conjur-appliance' directory and run the Python script
+                        cd conjur-appliance && \
                         python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
