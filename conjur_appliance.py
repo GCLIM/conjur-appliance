@@ -430,7 +430,7 @@ def sysctld_config():
 def enable_linger(username):
     try:
         # Run the `loginctl enable-linger` command
-        result = subprocess.run(['loginctl', 'enable-linger', username], check=True, text=True, capture_output=True)
+        result = subprocess.run(['loginctl', 'enable-linger', username], check=True, capture_output=True)
         print(f"Successfully enabled linger for user {username}.")
     except subprocess.CalledProcessError as e:
         # Handle errors in case the command fails
@@ -444,7 +444,7 @@ def enable_linger(username):
 def disable_linger(username):
     try:
         # Run the `loginctl disable-linger` command
-        result = subprocess.run(['loginctl', 'disable-linger', username], check=True, text=True, capture_output=True)
+        result = subprocess.run(['loginctl', 'disable-linger', username], check=True, capture_output=True)
         print(f"Successfully disabled linger for user {username}.")
     except subprocess.CalledProcessError as e:
         # Handle errors in case the command fails
