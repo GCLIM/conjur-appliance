@@ -75,3 +75,8 @@ systemctl --user stop conjur.service
 systemctl --user disable conjur.service
 rm $HOME/.config/systemd/user/conjur.service
 systemctl --user daemon-reload
+
+------
+
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
