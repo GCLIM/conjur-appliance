@@ -149,6 +149,10 @@ def deploy_model(name: str, type: str, registry: str) -> None:
         with open(DEPLOYMENT_FILE, 'w') as file:
             json.dump(deployment_info, file)
             file.write('\n')
+
+        # Enable linger for the current user
+        enable_linger(os.getlogin())
+
     else:
         print(f"Deployment status: Already {deployment_status}")
         print(f"Conjur appliance running: {docker_running}")
@@ -267,6 +271,9 @@ def retire_model():
                 print(f"'{retire_item}' ...")
                 subprocess.run(retire_command, check=True, shell=True)
                 print(f"'{retire_item}' done.")
+
+            # Disable linger for the current user
+            disable_linger(os.getlogin())
 
             # Print success message
             print(f"'{name}' retired successfully.")
@@ -420,6 +427,34 @@ def sysctld_config():
     print("Configured sysctld")
 
 
+def enable_linger(username):
+    try:
+        # Run the `loginctl enable-linger` command
+        result = subprocess.run(['loginctl', 'enable-linger', username], check=True, text=True, capture_output=True)
+        print(f"Successfully enabled linger for user {username}.")
+    except subprocess.CalledProcessError as e:
+        # Handle errors in case the command fails
+        print(f"Failed to enable linger for user {username}.")
+        print(f"Error: {e.stderr}")
+    except Exception as e:
+        # Handle unexpected errors
+        print(f"An unexpected error occurred: {e}")
+
+
+def disable_linger(username):
+    try:
+        # Run the `loginctl disable-linger` command
+        result = subprocess.run(['loginctl', 'disable-linger', username], check=True, text=True, capture_output=True)
+        print(f"Successfully disabled linger for user {username}.")
+    except subprocess.CalledProcessError as e:
+        # Handle errors in case the command fails
+        print(f"Failed to disable linger for user {username}.")
+        print(f"Error: {e.stderr}")
+    except Exception as e:
+        # Handle unexpected errors
+        print(f"An unexpected error occurred: {e}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deploy Conjur container image.",
                                      formatter_class=argparse.RawTextHelpFormatter,
@@ -463,8 +498,6 @@ if __name__ == "__main__":
 
         deploy_model(args.name, args.type, args.registry)
 
-
-
     if args.model == "precheck":
         if precheck_model() == 1:
             print("Precheck 'Failed'.")
@@ -480,12 +513,11 @@ if __name__ == "__main__":
         deployment_status, docker_running, service_running = check_deployment_status()
         if deployment_status == "Unknown":
             print("Deployment status: Unknown")
-            print(f"Conjur appliance running: {docker_running}")
-            print(f"Conjur service enabled: {service_running}")
+
         else:
             print(f"Deployment status: {deployment_status}")
-            print(f"Conjur appliance running: {docker_running}")
-            print(f"Conjur service enabled: {service_running}")
+        print(f"Conjur appliance running: {docker_running}")
+        print(f"Conjur service enabled: {service_running}")
 
     if args.sysctld == "config":
         sysctld_config()
