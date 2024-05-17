@@ -53,8 +53,8 @@ DOCKER_PARAMETER_FOLLOWER = f" \
 --volume {HOME}/cyberark/conjur/backups:/opt/conjur/backup:z \
 --volume {HOME}/cyberark/conjur/logs:/var/log/conjur:z"
 
-DEPLOYMENT_SUCCESSFUL = 0
-DEPLOYMENT_FAILED = 1
+PASSED = 0
+FAILED = 1
 ALREADY_DEPLOYED = 2
 
 def deploy_model(name: str, type: str, registry: str) -> int:
@@ -111,7 +111,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
             print(f"Error: {e}")
             deployment_info["status"] = "Failed"
             print(f"'{name}' deployment 'Failed'.")
-            exit_code = DEPLOYMENT_FAILED
+            exit_code = FAILED
 
         # Save the current directory
         previous_dir = os.getcwd()
@@ -225,21 +225,21 @@ def precheck_model():
     Returns the exit code indicating the success or failure of the prechecks.
     """
     print("Precheck ...")
-    exit_code = 0
+    exit_code = PASSED
 
     # Check IPv4 unprivileged port starts at 443
     if check_sysctl_value("net.ipv4.ip_unprivileged_port_start", 443) == 0:
         print("Check IPv4 unprivileged port starts at 443: Passed")
     else:
         print("Check IPv4 unprivileged port starts at 443: Failed")
-        exit_code = 1
+        exit_code = FAILED
 
     # Check user maximum number of namespaces is set to 28633
     if check_sysctl_value("user.max_user_namespaces", 28633) == 0:
         print("Check user maximum number of namespaces is set to 28633: Passed")
     else:
         print("Check user maximum number of namespaces is set to 28633: Failed")
-        exit_code = 1
+        exit_code = FAILED
 
     PRECHECK_LIST = (
         ("Test permission to create directory", "mkdir dummy.dir", "rm -rf dummy.dir"),
@@ -255,7 +255,7 @@ def precheck_model():
         except subprocess.CalledProcessError as e:
             print(f"Error: {e}")
             print(f"{check_name}: Failed")
-            exit_code = 1
+            exit_code = FAILED
         finally:
             subprocess.run(cleanup_command, check=False, shell=True)
 
@@ -547,20 +547,20 @@ if __name__ == "__main__":
             exit(1)
 
         #Prechceck
-        if precheck_model() == 1:
+        if precheck_model() == FAILED:
             print("Prerequisite Check: 'Failed'")
             exit(1)
         else:
             print("Prerequisite Check: 'Passed'")
 
         deployment_status = deploy_model(args.name, args.type, args.registry)
-        if deployment_status == DEPLOYMENT_FAILED:
+        if deployment_status == FAILED:
             exit(1)
         else:
             exit(0)
 
     if args.model == "precheck":
-        if precheck_model() == 1:
+        if precheck_model() == FAILED:
             print("Prerequisite Check: 'Failed'")
             exit(1)
         else:
