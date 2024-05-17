@@ -1,4 +1,4 @@
-name: Conjur Leader Cluster Deployment
+name: Conjur Leader Cluster Deployment (all)
 
 on:
   workflow_dispatch:
