@@ -79,9 +79,9 @@ def deploy_model(name: str, type: str, registry: str) -> None:
 
         # Iterate over the deployment list and execute each command
         for deploy_item, deploy_command in DEPLOYMENT_LIST:
-            print(f"'{deploy_item}' ...")
+            print(f"'{deploy_item}' ...", end="")
             subprocess.run(deploy_command, check=True, shell=True)
-            print(f"'{deploy_item}' done.")
+            print(f"Done")
 
         # Create a dictionary to store deployment information
         deployment_info = {
@@ -103,10 +103,10 @@ def deploy_model(name: str, type: str, registry: str) -> None:
                 command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
 
             # Print the starting message and execute the command
-            print(f"Starting '{name}'...")
+            print(f"Starting '{name}'...", end="")
             subprocess.run(command, check=True, shell=True)
             deployment_info["status"] = "Deployed"
-            print(f"'{name}' is 'Deployed'.")
+            print("'Deployed'")
         except subprocess.CalledProcessError as e:
             # Print the error message and update the deployment status
             print(f"Error: {e}")
@@ -268,9 +268,9 @@ def retire_model():
 
             # Run retirement commands
             for retire_item, retire_command in RETIREMENT_LIST:
-                print(f"'{retire_item}' ...")
+                print(f"'{retire_item}'...", end="")
                 subprocess.run(retire_command, check=True, shell=True)
-                print(f"'{retire_item}' done.")
+                print("Done")
 
             # Disable linger for the current user
             disable_linger(os.getlogin())
