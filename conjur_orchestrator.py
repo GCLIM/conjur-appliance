@@ -3,6 +3,7 @@ import socket
 import argparse
 import os
 import conjur_appliance
+import paramiko
 
 DOCKER = "podman"
 
@@ -202,7 +203,7 @@ if __name__ == "__main__":
             exit(1)
         leader_deployment_model(args.file)
 
-    if args.deploy in ["deployall"]:
+    if args.deployall in ["leader"]:
         # check if file exist for arg.file
         if not args.file:
             parser.print_help()
