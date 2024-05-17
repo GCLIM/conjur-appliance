@@ -76,8 +76,8 @@ def leader_deployment_model(yaml_file):
     #check if deploying leader node
     if info['type'] == 'leader':
         print(f"Deploying leader cluster for leader node ...")
-        print(f"Type: {info['type']}")
         print(f"Name: {info['name']}")
+        print(f"Type: {info['type']}")
         print(f"Registry: {info['registry']}")
         conjur_appliance.deploy_model(
             name=info["name"],
@@ -97,8 +97,8 @@ def leader_deployment_model(yaml_file):
     #check if deploying sync standy node
     if info['type'] == 'standby':
         print(f"Deploying leader cluster for standby node ...")
-        print(f"Type: {info['type']}")
         print(f"Name: {info['name']}")
+        print(f"Type: {info['type']}")
         print(f"Registry: {info['registry']}")
         conjur_appliance.deploy_model(
             name=info["name"],
