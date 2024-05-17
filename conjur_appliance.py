@@ -53,24 +53,23 @@ DOCKER_PARAMETER_FOLLOWER = f" \
 --volume {HOME}/cyberark/conjur/backups:/opt/conjur/backup:z \
 --volume {HOME}/cyberark/conjur/logs:/var/log/conjur:z"
 
+DEPLOYMENT_SUCCESSFUL = 0
+DEPLOYMENT_FAILED = 1
+ALREADY_DEPLOYED = 2
 
-def deploy_model(name: str, type: str, registry: str) -> None:
+def deploy_model(name: str, type: str, registry: str) -> int:
     """
-    Deploys a Conjur model with the given name, type, and registry.
+    Deploys a model with the specified name, type, and registry.
 
     Args:
-        name (str): The name of the container.
-        type (str): The type of the container. Must be one of "leader", "standby", or "follower".
-        registry (str): The registry of the docker image.
+        name (str): The name of the model.
+        type (str): The type of the model (leader, standby, or follower).
+        registry (str): The registry of the model.
 
     Returns:
-        None
-
-    Raises:
-        subprocess.CalledProcessError: If there is an error during the deployment process.
-
-    Writes deployment information to a JSON file.
+        int: The exit code of the deployment process.
     """
+    exit_code = 0
     deployment_status, docker_running, service_running = check_deployment_status()
     if deployment_status != "Deployed":
 
@@ -112,6 +111,7 @@ def deploy_model(name: str, type: str, registry: str) -> None:
             print(f"Error: {e}")
             deployment_info["status"] = "Failed"
             print(f"'{name}' deployment 'Failed'.")
+            exit_code = DEPLOYMENT_FAILED
 
         # Save the current directory
         previous_dir = os.getcwd()
@@ -154,11 +154,26 @@ def deploy_model(name: str, type: str, registry: str) -> None:
         enable_linger(os.getlogin())
 
     else:
+        exit_code = ALREADY_DEPLOYED
         print(f"Deployment status: Already {deployment_status}")
-        print(f"Conjur appliance running: {docker_running}")
-        print(f"Conjur service enabled: {service_running}")
+
+    print(f"Conjur appliance running: {docker_running}")
+    print(f"Conjur service enabled: {service_running}")
+
+    return exit_code
+
 
 def check_sysctl_value(name, expected_value):
+    """
+    A function to check the value of a sysctl parameter against an expected value.
+
+    Parameters:
+    name (str): The name of the sysctl parameter to check.
+    expected_value (int): The expected value that the sysctl parameter should have.
+
+    Returns:
+    int: 0 if the value matches the expected value, 1 otherwise.
+    """
     try:
         # Run the sysctl command to retrieve the value of net.ipv4.ip_unprivileged_port_start
         result = subprocess.run(["sysctl", "-n", name], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -177,6 +192,16 @@ def check_sysctl_value(name, expected_value):
 
 
 def check_sysctl_value(name, expected_value):
+    """
+    A function to check the value of a sysctl parameter against an expected value.
+
+    Parameters:
+    name (str): The name of the sysctl parameter to check.
+    expected_value (int): The expected value that the sysctl parameter should have.
+
+    Returns:
+    int: 0 if the value matches the expected value, 1 otherwise.
+    """
     try:
         result = subprocess.run(["sysctl", "-n", name], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 universal_newlines=True, check=True)
@@ -194,6 +219,12 @@ def check_sysctl_value(name, expected_value):
 
 
 def precheck_model():
+    """
+    A function that performs prechecks including checking the IPv4 unprivileged port starting at 443
+    and the user maximum number of namespaces being set to 28633.
+    It also tests permissions to create directories, files, and checks podman installation.
+    Returns the exit code indicating the success or failure of the prechecks.
+    """
     print("Precheck ...")
     exit_code = 0
 
@@ -355,6 +386,15 @@ def is_container_running(container_name):
 
 
 def is_service_running(service_name):
+    """
+    Check if a service is running.
+
+    Args:
+        service_name (str): The name of the service to check.
+
+    Returns:
+        bool: True if the service is running, False otherwise.
+    """
     try:
         # Run systemctl status <service_name> command
         subprocess.run(["systemctl", "--user", "status", service_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
@@ -428,6 +468,15 @@ def sysctld_config():
 
 
 def enable_linger(username):
+    """
+    A function to enable linger for a specified username.
+
+    Parameters:
+        username (str): The username for which to enable linger.
+
+    Returns:
+        None
+    """
     try:
         # Run the `loginctl enable-linger` command
         result = subprocess.run(['loginctl', 'enable-linger', username], check=True)
@@ -442,6 +491,15 @@ def enable_linger(username):
 
 
 def disable_linger(username):
+    """
+    A function to disable linger for a specified username.
+
+    Parameters:
+        username (str): The username for which to disable linger.
+
+    Returns:
+        None
+    """
     try:
         # Run the `loginctl disable-linger` command
         result = subprocess.run(['loginctl', 'disable-linger', username], check=True)
@@ -491,19 +549,23 @@ if __name__ == "__main__":
 
         #Prechceck
         if precheck_model() == 1:
-            print("Precheck 'Failed'.")
+            print("Prerequisite Check: 'Failed'")
             exit(1)
         else:
-            print("Precheck 'Passed'.")
+            print("Prerequisite Check: 'Passed'")
 
-        deploy_model(args.name, args.type, args.registry)
+        deployment_status = deploy_model(args.name, args.type, args.registry)
+        if deployment_status == DEPLOYMENT_FAILED:
+            exit(1)
+        else:
+            exit(0)
 
     if args.model == "precheck":
         if precheck_model() == 1:
-            print("Precheck 'Failed'.")
+            print("Prerequisite Check: 'Failed'")
             exit(1)
         else:
-            print("Precheck 'Passed'.")
+            print("Prerequisite Check: 'Passed'")
             exit(0)
 
     if args.model == "retire":
@@ -511,11 +573,11 @@ if __name__ == "__main__":
 
     if args.model == "status":
         deployment_status, docker_running, service_running = check_deployment_status()
+        print("Deployment Status: ", end="")
         if deployment_status == "Unknown":
-            print("Deployment status: Unknown")
-
+            print("Unknown")
         else:
-            print(f"Deployment status: {deployment_status}")
+            print(f"{deployment_status}")
         print(f"Conjur appliance running: {docker_running}")
         print(f"Conjur service enabled: {service_running}")
 
