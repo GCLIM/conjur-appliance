@@ -156,9 +156,8 @@ def deploy_model(name: str, type: str, registry: str) -> int:
     else:
         exit_code = ALREADY_DEPLOYED
         print(f"Deployment status: Already {deployment_status}")
-
-    print(f"Conjur appliance running: {docker_running}")
-    print(f"Conjur service enabled: {service_running}")
+        print(f"Conjur appliance running: {docker_running}")
+        print(f"Conjur service enabled: {service_running}")
 
     return exit_code
 
