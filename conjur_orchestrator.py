@@ -6,6 +6,43 @@ import conjur_appliance
 
 DOCKER = "podman"
 
+def remote_run_with_key(hostname, port, username, key_path, commands):
+    # Create an SSH client
+    ssh = paramiko.SSHClient()
+
+    # Load system host keys and add the remote server's host key automatically
+    ssh.load_system_host_keys()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try:
+        # Load the SSH key
+        key = paramiko.RSAKey.from_private_key_file(key_path)
+
+        # Connect to the remote server using the SSH key
+        ssh.connect(hostname, port=port, username=username, pkey=key)
+
+        # Create a multiline string for the commands
+        # command_string = '\n'.join(commands)
+        command_string = commands
+        # Run the multiline command
+        stdin, stdout, stderr = ssh.exec_command(command_string)
+
+        # Collect the results
+        output = stdout.read().decode()
+        error = stderr.read().decode()
+
+        # Print the output and error
+        print("Output:")
+        print(output)
+        print("Error:")
+        print(error)
+
+    except paramiko.SSHException as e:
+        print(f"SSH error: {e}")
+    finally:
+        # Close the connection
+        ssh.close()
+
 def lookup_by_hostname(yaml_file, hostname):
     with open(yaml_file, 'r') as file:
         data = yaml.safe_load(file)
@@ -109,12 +146,43 @@ def leader_deployment_model(yaml_file):
     return
 
 
+def leader_deployall_model(yaml_file):
+    kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
+
+    if kind != 'leader-cluster':
+        print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
+        exit(1)
+
+    for hostname in read_leader_cluster_hostnames(yaml_file):
+        info = lookup_by_hostname(yaml_file, hostname)
+        if info is None:
+            exit(1)
+
+        commands = f"""
+# Check if the directory 'conjur-appliance' exists
+if [ -d "conjur-appliance" ]; then
+# If it exists, navigate to it and pull the latest changes from the repository
+    git -C conjur-appliance pull
+else
+# If it does not exist, clone the repository from GitHub
+    git clone https://github.com/GCLIM/conjur-appliance.git
+fi
+# Change to the 'conjur-appliance' directory and run the Python script
+cd conjur-appliance && \
+python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
+"""
+        remote_run_with_key(hostname, port=22, username=gclim,
+                            key_path="/home/gclim/.ssh/conjurappliance_ed25519", commands=commands)
+        print(f"Leader cluster standby node deployment complete.")
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Conjur deployment orchestrator",
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      add_help=True)
     parser.add_argument("-d", "--deploy", type=str, help="leader: deploy leader cluster")
+    parser.add_argument("-g", "--deployall", type=str, help="deployall: deploy leader cluster")
     parser.add_argument("-f", "--file", type=str, help="eg. env/dev/leader-cluster.yml")
     args = parser.parse_args()
 
@@ -133,3 +201,15 @@ if __name__ == "__main__":
             print(f"Error: {args.file} does not exist.")
             exit(1)
         leader_deployment_model(args.file)
+
+    if args.deploy in ["deployall"]:
+        # check if file exist for arg.file
+        if not args.file:
+            parser.print_help()
+            print("Error: -f, --file cannot be empty.")
+            exit(1)
+        # check if file exist on the disk
+        if not os.path.exists(args.file):
+            print(f"Error: {args.file} does not exist.")
+            exit(1)
+        leader_deployall_model(args.file)
