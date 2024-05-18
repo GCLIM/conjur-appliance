@@ -26,16 +26,16 @@ async def remote_run_with_key(hostname, port, username, key_path, commands):
             if output:
                 print("Output:")
                 print(output)
-            
+
             if error:
                 print("Error:")
                 print(error)
-                
+
     except (OSError, asyncssh.Error) as e:
         print(f"SSH connection failed: {e}")
 
 
-def lookup_by_hostname(yaml_file, hostname):
+def lookup_by_leader_hostname(yaml_file, hostname):
     with open(yaml_file, 'r') as file:
         data = yaml.safe_load(file)
 
@@ -44,6 +44,26 @@ def lookup_by_hostname(yaml_file, hostname):
         print(f"Deployment info for host '{hostname}': {info}")
         host_info = {
             "type": info["type"],
+            "name": info["name"],
+            "registry": ""
+        }
+        if "registry" in info:
+            host_info["registry"] = info["registry"]
+        return host_info
+    else:
+        print(f"No deployment information found for host '{hostname}'")
+        return None
+
+
+def lookup_by_follower_hostname(yaml_file, hostname):
+    with open(yaml_file, 'r') as file:
+        data = yaml.safe_load(file)
+
+    if hostname in data:
+        info = data[hostname]
+        print(f"Deployment info for host '{hostname}': {info}")
+        host_info = {
+            "type": "follower",
             "name": info["name"],
             "registry": ""
         }
@@ -76,7 +96,29 @@ def read_leader_cluster_requirements(yaml_file):
     return kind, hostname, account_name, default_registry
 
 
+def read_follower_requirements(yaml_file):
+    with open(yaml_file, 'r') as file:
+        data = yaml.safe_load(file)
+
+    kind = data.get('kind')
+    hostname = data.get('hostname')
+    account_name = data.get('account_name')
+    default_registry = data.get('default_registry')
+    return kind, hostname, account_name, default_registry
+
+
 def read_leader_cluster_hostnames(yaml_file):
+    with open(yaml_file, 'r') as file:
+        data = yaml.safe_load(file)
+
+    # Extract all keys except known top-level keys
+    known_keys = {'kind', 'hostname', 'account_name', 'default_registry'}
+    hostnames = [key for key in data if key not in known_keys]
+
+    return hostnames
+
+
+def read_follower_hostnames(yaml_file):
     with open(yaml_file, 'r') as file:
         data = yaml.safe_load(file)
 
@@ -95,7 +137,7 @@ def leader_deployment_model(yaml_file):
         print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
         exit(1)
 
-    info = lookup_by_hostname(yaml_file, current_hostname)
+    info = lookup_by_leader_hostname(yaml_file, current_hostname)
     if info is None:
         exit(1)
 
@@ -146,7 +188,7 @@ def deploy_leader_cluster_model(yaml_file):
         exit(1)
 
     for hostname in read_leader_cluster_hostnames(yaml_file):
-        info = lookup_by_hostname(yaml_file, hostname)
+        info = lookup_by_leader_hostname(yaml_file, hostname)
         if info is None:
             exit(1)
 
@@ -159,23 +201,55 @@ fi
 cd conjur-appliance
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
+python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
 """
         key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
         asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
-                            key_path=key_path, commands=commands))
+                                        key_path=key_path, commands=commands))
         print(f"Leader cluster deployment complete.")
+
+
+def deploy_follower_model(yaml_file):
+    kind, hostname, account_name, default_registry = read_follower_requirements(yaml_file)
+
+    if kind != 'follower':
+        print(f"Invalid kind: {kind}, expects 'follower' for follower deployment")
+        exit(1)
+
+    for hostname in read_follower_hostnames(yaml_file):
+        info = lookup_by_follower_hostname(yaml_file, hostname)
+        if info is None:
+            exit(1)
+
+        if info['registry'] == "":
+            info['registry'] = default_registry
+
+        commands = f"""
+if [ -d "conjur-appliance" ]; then
+    git -C conjur-appliance pull
+else
+    git clone https://github.com/GCLIM/conjur-appliance.git
+fi
+cd conjur-appliance
+python3 -m pip install --user --upgrade pip
+if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+python3 conjur_appliance.py -m deploy -name {hostname} -t info['type'] -reg {info['registry']}
+"""
+        key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
+        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
+                                        key_path=key_path, commands=commands))
+        print(f"Follower deployment complete.")
 
 
 def retire_leader_cluster_model(yaml_file):
     kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
 
     if kind != 'leader-cluster':
-        print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
+        print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader retirement")
         exit(1)
 
     for hostname in read_leader_cluster_hostnames(yaml_file):
-        info = lookup_by_hostname(yaml_file, hostname)
+        info = lookup_by_leader_hostname(yaml_file, hostname)
         if info is None:
             exit(1)
 
@@ -192,9 +266,37 @@ python3 conjur_appliance.py -m retire
 """
         key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
         asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
-                            key_path=key_path, commands=commands))
+                                        key_path=key_path, commands=commands))
         print(f"Leader cluster retired.")
 
+
+def retire_follower_model(yaml_file):
+    kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
+
+    if kind != 'follower':
+        print(f"Invalid kind: {kind}, expects 'follower' for follower retirement")
+        exit(1)
+
+    for hostname in read_follower_hostnames(yaml_file):
+        info = lookup_by_follower_hostname(yaml_file, hostname)
+        if info is None:
+            exit(1)
+
+        commands = f"""
+if [ -d "conjur-appliance" ]; then
+    git -C conjur-appliance pull
+else
+    git clone https://github.com/GCLIM/conjur-appliance.git
+fi
+cd conjur-appliance
+python3 -m pip install --user --upgrade pip
+if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+python3 conjur_appliance.py -m retire
+"""
+        key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
+        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
+                                        key_path=key_path, commands=commands))
+        print(f"Follower retired.")
 
 
 if __name__ == "__main__":
@@ -202,7 +304,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Conjur deployment orchestrator",
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      add_help=True)
-    parser.add_argument("-d", "--deploy", type=str, help="leader: deploy leader cluster")
+    parser.add_argument("-d", "--deploy", type=str, help="leader: deploy leader cluster\nfollower: deploy follower")
+    parser.add_argument("-o", "--orchestrator", type=str, help="leader: orchestrator leader cluster deployment")
     parser.add_argument("-r", "--retire", type=str, help="leader: retire leader cluster")
     parser.add_argument("-f", "--file", type=str, help="eg. env/dev/leader-cluster.yml")
     args = parser.parse_args()
@@ -223,6 +326,18 @@ if __name__ == "__main__":
             exit(1)
         deploy_leader_cluster_model(args.file)
 
+    if args.deploy in ["orchestrator"]:
+        # check if file exist for arg.file
+        if not args.file:
+            parser.print_help()
+            print("Error: -f, --file cannot be empty.")
+            exit(1)
+        # check if file exist on the disk
+        if not os.path.exists(args.file):
+            print(f"Error: {args.file} does not exist.")
+            exit(1)
+        leader_deployment_model(args.file)
+
     if args.retire in ["leader"]:
         # check if file exist for arg.file
         if not args.file:
@@ -234,3 +349,27 @@ if __name__ == "__main__":
             print(f"Error: {args.file} does not exist.")
             exit(1)
         retire_leader_cluster_model(args.file)
+
+    if args.deploy in ["follower"]:
+        # check if file exist for arg.file
+        if not args.file:
+            parser.print_help()
+            print("Error: -f, --file cannot be empty.")
+            exit(1)
+        # check if file exist on the disk
+        if not os.path.exists(args.file):
+            print(f"Error: {args.file} does not exist.")
+            exit(1)
+        deploy_follower_model(args.file)
+
+    if args.retire in ["follower"]:
+        # check if file exist for arg.file
+        if not args.file:
+            parser.print_help()
+            print("Error: -f, --file cannot be empty.")
+            exit(1)
+        # check if file exist on the disk
+        if not os.path.exists(args.file):
+            print(f"Error: {args.file} does not exist.")
+            exit(1)
+        retire_follower_model(args.file)

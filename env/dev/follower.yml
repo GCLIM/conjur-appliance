@@ -1,0 +1,24 @@
+# env/dev/follower.yml
+# Template
+kind: follower
+
+#specify <load-balancer-dns>
+hostname: load-balancer-dns
+
+#specify <account-name>
+account_name: default
+
+#specify default_registry for docker image
+default_registry: dockerhub.gcloud101.com/my-sample-app
+#specify leader-cluster node specification:
+#hostname:
+    #name: <container_name>
+    #registry: container registry for docker image  (optional)
+
+#specify leader node
+conjur01.gcloud101.com:
+    name: follower01
+
+#specify standby node with sync_replication enabled
+conjur02.gcloud101.com:
+    name: follower02
