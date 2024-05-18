@@ -3,46 +3,33 @@ import socket
 import argparse
 import os
 import conjur_appliance
-import paramiko
+import asyncio
+import asyncssh
+import tracemalloc
 
+tracemalloc.start()
 DOCKER = "podman"
 
-def remote_run_with_key(hostname, port, username, key_path, commands):
-    # Create an SSH client
-    ssh = paramiko.SSHClient()
 
-    # Load system host keys and add the remote server's host key automatically
-    ssh.load_system_host_keys()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
+async def remote_run_with_key(hostname, port, username, key_path, commands):
     try:
-        # Load the SSH key
-        key = paramiko.RSAKey.from_private_key_file(key_path)
-
         # Connect to the remote server using the SSH key
-        ssh.connect(hostname, port=port, username=username, pkey=key)
+        async with asyncssh.connect(hostname, port=port, username=username, client_keys=[key_path]) as conn:
+            # Run the multiline command
+            result = await conn.run(commands, check=True)
 
-        # Create a multiline string for the commands
-        # command_string = '\n'.join(commands)
-        command_string = commands
-        # Run the multiline command
-        stdin, stdout, stderr = ssh.exec_command(command_string)
+            # Collect the results
+            output = result.stdout
+            error = result.stderr
 
-        # Collect the results
-        output = stdout.read().decode()
-        error = stderr.read().decode()
+            # Print the output and error
+            print("Output:")
+            print(output)
+            print("Error:")
+            print(error)
+    except (OSError, asyncssh.Error) as e:
+        print(f"SSH connection failed: {e}")
 
-        # Print the output and error
-        print("Output:")
-        print(output)
-        print("Error:")
-        print(error)
-
-    except paramiko.SSHException as e:
-        print(f"SSH error: {e}")
-    finally:
-        # Close the connection
-        ssh.close()
 
 def lookup_by_hostname(yaml_file, hostname):
     with open(yaml_file, 'r') as file:
@@ -159,21 +146,32 @@ def leader_deployall_model(yaml_file):
         if info is None:
             exit(1)
 
+#         commands = f"""
+# # Check if the directory 'conjur-appliance' exists
+# if [ -d "conjur-appliance" ]; then
+# # If it exists, navigate to it and pull the latest changes from the repository
+#     git -C conjur-appliance pull
+# else
+# # If it does not exist, clone the repository from GitHub
+#     git clone https://github.com/GCLIM/conjur-appliance.git
+# fi
+# # Change to the 'conjur-appliance' directory and run the Python script
+# cd conjur-appliance && \
+# python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
+# """
         commands = f"""
-# Check if the directory 'conjur-appliance' exists
+ls -l
 if [ -d "conjur-appliance" ]; then
-# If it exists, navigate to it and pull the latest changes from the repository
-    git -C conjur-appliance pull
-else
-# If it does not exist, clone the repository from GitHub
-    git clone https://github.com/GCLIM/conjur-appliance.git
+      echo conjur-appliance directorty exists
+      git -C conjur-appliance pull
 fi
-# Change to the 'conjur-appliance' directory and run the Python script
-cd conjur-appliance && \
+cd conjur-appliance &&
 python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
 """
-        remote_run_with_key(hostname, port=22, username="gclim",
-                            key_path="/home/gclim/.ssh/conjurappliance_rsa", commands=commands)
+        # key_path = "/home/gclim/.ssh/conjurappliance_rsa"
+        key_path = "/Users/ghimchuanlim/.ssh/id_rsa"
+        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
+                            key_path=key_path, commands=commands))
         print(f"Leader cluster standby node deployment complete.")
 
 
