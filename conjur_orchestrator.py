@@ -138,7 +138,7 @@ def leader_deployment_model(yaml_file):
     return
 
 
-def leader_deployall_model(yaml_file):
+def deploy_leader_cluster_model(yaml_file):
     kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
 
     if kind != 'leader-cluster':
@@ -164,7 +164,37 @@ python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
         key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
         asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
                             key_path=key_path, commands=commands))
-        print(f"Leader cluster standby node deployment complete.")
+        print(f"Leader cluster deployment complete.")
+
+
+def retire_leader_cluster_model(yaml_file):
+    kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
+
+    if kind != 'leader-cluster':
+        print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
+        exit(1)
+
+    for hostname in read_leader_cluster_hostnames(yaml_file):
+        info = lookup_by_hostname(yaml_file, hostname)
+        if info is None:
+            exit(1)
+
+        commands = f"""
+if [ -d "conjur-appliance" ]; then
+    git -C conjur-appliance pull
+else
+    git clone https://github.com/GCLIM/conjur-appliance.git
+fi
+cd conjur-appliance
+python3 -m pip install --user --upgrade pip
+if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+python3 conjur_appliance.py -m retire
+"""
+        key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
+        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
+                            key_path=key_path, commands=commands))
+        print(f"Leader cluster retired.")
+
 
 
 if __name__ == "__main__":
@@ -173,7 +203,7 @@ if __name__ == "__main__":
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      add_help=True)
     parser.add_argument("-d", "--deploy", type=str, help="leader: deploy leader cluster")
-    parser.add_argument("-g", "--deployall", type=str, help="deployall: deploy leader cluster")
+    parser.add_argument("-r", "--retire", type=str, help="leader: retire leader cluster")
     parser.add_argument("-f", "--file", type=str, help="eg. env/dev/leader-cluster.yml")
     args = parser.parse_args()
 
@@ -182,18 +212,6 @@ if __name__ == "__main__":
         parser.print_help()
 
     if args.deploy in ["leader"]:
-        #check if file exist for arg.file
-        if not args.file:
-            parser.print_help()
-            print("Error: -f, --file cannot be empty.")
-            exit(1)
-        #check if file exist on the disk
-        if not os.path.exists(args.file):
-            print(f"Error: {args.file} does not exist.")
-            exit(1)
-        leader_deployment_model(args.file)
-
-    if args.deployall in ["leader"]:
         # check if file exist for arg.file
         if not args.file:
             parser.print_help()
@@ -203,4 +221,16 @@ if __name__ == "__main__":
         if not os.path.exists(args.file):
             print(f"Error: {args.file} does not exist.")
             exit(1)
-        leader_deployall_model(args.file)
+        deploy_leader_cluster_model(args.file)
+
+    if args.retire in ["leader"]:
+        # check if file exist for arg.file
+        if not args.file:
+            parser.print_help()
+            print("Error: -f, --file cannot be empty.")
+            exit(1)
+        # check if file exist on the disk
+        if not os.path.exists(args.file):
+            print(f"Error: {args.file} does not exist.")
+            exit(1)
+        retire_leader_cluster_model(args.file)
