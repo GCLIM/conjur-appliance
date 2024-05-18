@@ -24,7 +24,7 @@ on:
 jobs:
 
     Pre-Checks:
-        runs-on: conjur03
+        runs-on: ansible
         environment: ${{ github.event.inputs.environment }}
         steps:
             - name: Checkout repository
