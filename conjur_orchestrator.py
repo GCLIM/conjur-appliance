@@ -171,8 +171,7 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
 """
-        # key_path = "/home/gclim/.ssh/conjurappliance_rsa"
-        key_path = "/Users/ghimchuanlim/.ssh/id_rsa"
+        key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
         asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
                             key_path=key_path, commands=commands))
         print(f"Leader cluster standby node deployment complete.")
