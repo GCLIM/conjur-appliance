@@ -17,16 +17,12 @@ default_registry: dockerhub.gcloud101.com/my-sample-app
     #registry: container registry for docker image  (optional)
 
 #specify leader node
-conjur02.gcloud101.com:
+conjur01.gcloud101.com:
     type: leader
     name: leadernode
 
 #specify standby node with sync_replication enabled
-conjur01.gcloud101.com:
+conjur02.gcloud101.com:
     type: standby
     name: standbynode1
 
-#specify standby node
-conjur03.gcloud101.com:
-    type: standby
-    name: standbynode2
