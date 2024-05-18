@@ -172,7 +172,7 @@ fi
 cd conjur-appliance && \
 python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
 """
-        remote_run_with_key(hostname, port=22, username=gclim,
+        remote_run_with_key(hostname, port=22, username="gclim",
                             key_path="/home/gclim/.ssh/conjurappliance_ed25519", commands=commands)
         print(f"Leader cluster standby node deployment complete.")
 
