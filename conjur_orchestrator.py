@@ -162,10 +162,13 @@ def leader_deployall_model(yaml_file):
         commands = f"""
 ls -l
 if [ -d "conjur-appliance" ]; then
-      echo conjur-appliance directorty exists
-      git -C conjur-appliance pull
+    git -C conjur-appliance pull
+else
+    git clone https://github.com/GCLIM/conjur-appliance.git
 fi
-cd conjur-appliance &&
+cd conjur-appliance
+python3 -m pip install --user --upgrade pip
+if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
 """
         # key_path = "/home/gclim/.ssh/conjurappliance_rsa"
