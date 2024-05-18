@@ -57,6 +57,33 @@ PASSED = 0
 FAILED = 1
 ALREADY_DEPLOYED = 2
 
+
+def enable_service(service_name):
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "enable", service_name],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        print("Service enabled successfully.")
+    except subprocess.CalledProcessError as e:
+        print("Error enabling service:", e.stderr)
+
+
+def start_service(service_name):
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "start", service_name],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        print("Service started successfully.")
+    except subprocess.CalledProcessError as e:
+        print("Error starting service:", e.stderr)
+        
+
 def deploy_model(name: str, type: str, registry: str) -> int:
     """
     Deploys a model with the specified name, type, and registry.
@@ -92,7 +119,6 @@ def deploy_model(name: str, type: str, registry: str) -> int:
 
         try:
             # Check the type of the container and set the command accordingly
-
 
             if type in ["leader", "standby"]:
                 print(DOCKER_PARAMETER_LEADER_STANDBY)
@@ -138,9 +164,11 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         # Reload systemd
         subprocess.run(["systemctl", "--user", "daemon-reload"])
 
-        # Start and enable the service
-        subprocess.run(["systemctl", "--user", "start", "conjur.service"])
-        subprocess.run(["systemctl", "--user", "enable", "conjur.service"])
+        # Start service
+        start_service("conjur.service")
+        
+        # Enable service
+        enable_service("conjur.service")
 
         # Return to the previous directory
         os.chdir(previous_dir)

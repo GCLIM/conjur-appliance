@@ -23,10 +23,14 @@ async def remote_run_with_key(hostname, port, username, key_path, commands):
             error = result.stderr
 
             # Print the output and error
-            print("Output:")
-            print(output)
-            print("Error:")
-            print(error)
+            if output:
+                print("Output:")
+                print(output)
+            
+            if error:
+                print("Error:")
+                print(error)
+                
     except (OSError, asyncssh.Error) as e:
         print(f"SSH connection failed: {e}")
 
@@ -146,21 +150,7 @@ def leader_deployall_model(yaml_file):
         if info is None:
             exit(1)
 
-#         commands = f"""
-# # Check if the directory 'conjur-appliance' exists
-# if [ -d "conjur-appliance" ]; then
-# # If it exists, navigate to it and pull the latest changes from the repository
-#     git -C conjur-appliance pull
-# else
-# # If it does not exist, clone the repository from GitHub
-#     git clone https://github.com/GCLIM/conjur-appliance.git
-# fi
-# # Change to the 'conjur-appliance' directory and run the Python script
-# cd conjur-appliance && \
-# python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
-# """
         commands = f"""
-ls -l
 if [ -d "conjur-appliance" ]; then
     git -C conjur-appliance pull
 else
