@@ -62,8 +62,6 @@ def enable_service(service_name):
     try:
         result = subprocess.run(
             ["systemctl", "--user", "enable", service_name],
-            capture_output=True,
-            text=True,
             check=True
         )
         print("Service enabled successfully.")
@@ -75,14 +73,12 @@ def start_service(service_name):
     try:
         result = subprocess.run(
             ["systemctl", "--user", "start", service_name],
-            capture_output=True,
-            text=True,
             check=True
         )
         print("Service started successfully.")
     except subprocess.CalledProcessError as e:
         print("Error starting service:", e.stderr)
-        
+
 
 def deploy_model(name: str, type: str, registry: str) -> int:
     """
