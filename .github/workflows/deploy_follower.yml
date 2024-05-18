@@ -1,4 +1,4 @@
-name: Conjur Leader Cluster Deployment (all)
+name: Deploy Follower
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ on:
 
 jobs:
 
-    Pre-Checks:
+    Deploy:
         runs-on: ansible
         environment: ${{ github.event.inputs.environment }}
         steps:
@@ -41,6 +41,4 @@ jobs:
                 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
             - name: Run script
-              run: python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
-
-
+              run: python3 conjur_orchestrator.py -d follower -f env/dev/follower.yml
