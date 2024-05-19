@@ -80,6 +80,26 @@ def start_service(service_name):
         print("Error starting service:", e.stderr)
 
 
+def run_subprocess(command, shell=False):
+    """
+    Run a subprocess command and print its output for verbosity.
+
+    Args:
+        command (list or str): The command to run.
+        shell (bool): Whether to run the command in the shell.
+
+    Returns:
+        CompletedProcess: The result of the subprocess.run call.
+    """
+    print(f"Running command: {' '.join(command) if isinstance(command, list) else command}")
+    result = subprocess.run(command, capture_output=True, text=True, shell=shell)
+    print(f"stdout:\n{result.stdout}")
+    if result.stderr:
+        print(f"stderr:\n{result.stderr}")
+    result.check_returncode()  # This will raise CalledProcessError if the command failed
+    return result
+
+
 def deploy_model(name: str, type: str, registry: str) -> int:
     """
     Deploys a model with the specified name, type, and registry.
@@ -102,7 +122,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         # Iterate over the deployment list and execute each command
         for deploy_item, deploy_command in DEPLOYMENT_LIST:
             print(f"'{deploy_item}' ...", end="")
-            subprocess.run(deploy_command, check=True, shell=True)
+            run_subprocess(deploy_command, shell=True)
             print(f"Done")
 
         # Create a dictionary to store deployment information
@@ -125,7 +145,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
 
             # Print the starting message and execute the command
             print(f"Starting '{name}'...", end="")
-            subprocess.run(command, check=True, shell=True)
+            run_subprocess(command, shell=True)
             deployment_info["status"] = "Deployed"
             print("'Deployed'")
         except subprocess.CalledProcessError as e:
@@ -158,7 +178,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
     """)
 
         # Reload systemd
-        subprocess.run(["systemctl", "--user", "daemon-reload"])
+        run_subprocess(["systemctl", "--user", "daemon-reload"])
 
         # Start service
         start_service("conjur.service")
