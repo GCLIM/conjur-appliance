@@ -62,7 +62,7 @@ def enable_service(service_name):
     try:
         result = subprocess.run(
             ["systemctl", "--user", "enable", service_name],
-            check=True
+            check=True, capture_output=True, text=True
         )
         print("Service enabled successfully.")
     except subprocess.CalledProcessError as e:
@@ -73,7 +73,7 @@ def start_service(service_name):
     try:
         result = subprocess.run(
             ["systemctl", "--user", "start", service_name],
-            check=True
+            check=True, capture_output=True, text=True
         )
         print("Service started successfully.")
     except subprocess.CalledProcessError as e:
@@ -91,11 +91,12 @@ def run_subprocess(command, shell=False):
     Returns:
         CompletedProcess: The result of the subprocess.run call.
     """
-    print(f"Running command: {' '.join(command) if isinstance(command, list) else command}")
+    print(f"Running command: {' '.join(command) if isinstance(command, list) else command}", end="")
     result = subprocess.run(command, capture_output=True, text=True, shell=shell)
-    print(f"stdout:\n{result.stdout}")
+    if result.stdout:
+        print(f"\nstdout:\n{result.stdout}")
     if result.stderr:
-        print(f"stderr:\n{result.stderr}")
+        print(f"\nstderr:\n{result.stderr}")
     result.check_returncode()  # This will raise CalledProcessError if the command failed
     return result
 
@@ -122,8 +123,11 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         # Iterate over the deployment list and execute each command
         for deploy_item, deploy_command in DEPLOYMENT_LIST:
             print(f"'{deploy_item}' ...", end="")
-            run_subprocess(deploy_command, shell=True)
-            print(f"Done")
+            if run_subprocess(deploy_command, shell=True) == 0:
+                print("...Done")
+            else:
+                print("...Failed")
+                exit_code = 1
 
         # Create a dictionary to store deployment information
         deployment_info = {
@@ -133,26 +137,23 @@ def deploy_model(name: str, type: str, registry: str) -> int:
             "status": ""
         }
 
-        try:
-            # Check the type of the container and set the command accordingly
+        # Check the type of the container and set the command accordingly
 
-            if type in ["leader", "standby"]:
-                print(DOCKER_PARAMETER_LEADER_STANDBY)
-                command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
-            elif type == "follower":
-                print(DOCKER_PARAMETER_FOLLOWER)
-                command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
+        if type in ["leader", "standby"]:
+            # print(DOCKER_PARAMETER_LEADER_STANDBY)
+            command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
+        elif type == "follower":
+            # print(DOCKER_PARAMETER_FOLLOWER)
+            command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
 
-            # Print the starting message and execute the command
-            print(f"Starting '{name}'...", end="")
-            run_subprocess(command, shell=True)
+        # Print the starting message and execute the command
+        print(f"Starting '{name}'...", end="")
+        if run_subprocess(command, shell=True) == 0:
             deployment_info["status"] = "Deployed"
-            print("'Deployed'")
-        except subprocess.CalledProcessError as e:
-            # Print the error message and update the deployment status
-            print(f"Error: {e}")
+            print("...Deployed")
+        else:
             deployment_info["status"] = "Failed"
-            print(f"'{name}' deployment 'Failed'.")
+            print("...Failed")
             exit_code = FAILED
 
         # Save the current directory
@@ -178,7 +179,11 @@ def deploy_model(name: str, type: str, registry: str) -> int:
     """)
 
         # Reload systemd
-        run_subprocess(["systemctl", "--user", "daemon-reload"])
+        if run_subprocess(["systemctl", "--user", "daemon-reload"]) == 0:
+            print("...Done")
+        else:
+            print("...Failed")
+            exit_code = FAILED
 
         # Start service
         start_service("conjur.service")
