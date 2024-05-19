@@ -15,10 +15,14 @@ default_registry: dockerhub.gcloud101.com/my-sample-app
     #name: <container_name>
     #registry: container registry for docker image  (optional)
 
-#specify leader node
+#specify follower node 1
 conjur01.gcloud101.com:
     name: follower01
 
-#specify standby node with sync_replication enabled
+#specify follower node 2
 conjur02.gcloud101.com:
     name: follower02
+
+#specify follower node 3
+conjur03.gcloud101.com:
+    name: follower03
