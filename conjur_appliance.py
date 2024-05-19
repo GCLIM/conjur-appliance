@@ -324,7 +324,7 @@ def retire_model():
     status = deployment_info.get("status")
 
     # Check if the deployment status is 'Deployed'
-    if status == "Deployed":
+    if status in ["Deployed","Failed"]:
         print(f"Retiring '{name}'...")
 
         # Stop and remove the container
