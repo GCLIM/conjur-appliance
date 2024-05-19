@@ -11,10 +11,22 @@ tracemalloc.start()
 DOCKER = "podman"
 
 
-async def remote_run_with_key(hostname, port, username, key_path, commands):
+async def get_ssh_private_key():
+    """Fetch the SSH private key from environment variables."""
+    key = os.getenv('SSH_PRIVATE_KEY')
+    if not key:
+        raise ValueError("SSH_PRIVATE_KEY environment variable not set.")
+    return key
+
+
+async def remote_run_with_key(hostname, port, username, commands):
+    """Run a command on a remote host with a private key."""
+    # Read the private key
+    private_key = await get_ssh_private_key()
+
     try:
         # Connect to the remote server using the SSH key
-        async with asyncssh.connect(hostname, port=port, username=username, client_keys=[key_path]) as conn:
+        async with asyncssh.connect(hostname, port=port, username=username, client_keys=[asyncssh.import_private_key(private_key)]) as conn:
             # Run the multiline command
             result = await conn.run(commands, check=True)
 
@@ -203,9 +215,8 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
 """
-        key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
-        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
-                                        key_path=key_path, commands=commands))
+
+        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim", commands=commands))
         print(f"Leader cluster deployment complete.")
 
 
@@ -235,9 +246,8 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m deploy -n {hostname} -t {info['type']} -reg {info['registry']}
 """
-        key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
-        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
-                                        key_path=key_path, commands=commands))
+
+        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim", commands=commands))
         print(f"Follower deployment complete.")
 
 
@@ -264,9 +274,8 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
-        key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
-        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
-                                        key_path=key_path, commands=commands))
+
+        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim", commands=commands))
     
     print(f"Leader cluster retired.")
 
@@ -294,9 +303,8 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
-        key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
-        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
-                                        key_path=key_path, commands=commands))
+
+        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim", commands=commands))
         print(f"Follower retired.")
 
 
