@@ -22,8 +22,7 @@ on:
         required: true
 
 jobs:
-
-    Deploy:
+    Deploy_Follower:
         runs-on: ansible
         environment: ${{ github.event.inputs.environment }}
         steps:

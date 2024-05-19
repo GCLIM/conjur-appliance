@@ -22,8 +22,7 @@ on:
         required: true
 
 jobs:
-
-    Pre-Checks:
+    Retire:
         runs-on: ansible
         environment: ${{ github.event.inputs.environment }}
         steps:
