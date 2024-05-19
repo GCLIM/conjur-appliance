@@ -267,7 +267,8 @@ python3 conjur_appliance.py -m retire
         key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
         asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
                                         key_path=key_path, commands=commands))
-        print(f"Leader cluster retired.")
+    
+    print(f"Leader cluster retired.")
 
 
 def retire_follower_model(yaml_file):
