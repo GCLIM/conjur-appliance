@@ -123,7 +123,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         # Iterate over the deployment list and execute each command
         for deploy_item, deploy_command in DEPLOYMENT_LIST:
             print(f"'{deploy_item}' ...", end="")
-            if run_subprocess(deploy_command, shell=True) == 0:
+            if run_subprocess(deploy_command, shell=True).returncode == 0:
                 print("...Done")
             else:
                 print("...Failed")
@@ -148,7 +148,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
 
         # Print the starting message and execute the command
         print(f"Starting '{name}'...", end="")
-        if run_subprocess(command, shell=True) == 0:
+        if run_subprocess(command, shell=True).returncode == 0:
             deployment_info["status"] = "Deployed"
             print("...Deployed")
         else:
@@ -179,7 +179,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
     """)
 
         # Reload systemd
-        if run_subprocess(["systemctl", "--user", "daemon-reload"]) == 0:
+        if run_subprocess(["systemctl", "--user", "daemon-reload"]).reurncode == 0:
             print("...Done")
         else:
             print("...Failed")
