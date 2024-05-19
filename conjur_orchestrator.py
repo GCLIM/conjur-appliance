@@ -267,7 +267,8 @@ python3 conjur_appliance.py -m retire
         key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
         asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
                                         key_path=key_path, commands=commands))
-        print(f"Leader cluster retired.")
+    
+    print(f"Leader cluster retired.")
 
 
 def retire_follower_model(yaml_file):
@@ -326,7 +327,7 @@ if __name__ == "__main__":
             exit(1)
         deploy_leader_cluster_model(args.file)
 
-    if args.deploy in ["orchestrator"]:
+    if args.orchestrator in ["leader"]:
         # check if file exist for arg.file
         if not args.file:
             parser.print_help()

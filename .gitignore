@@ -2,3 +2,4 @@
 venv
 deployment.json
 cyberark
+__pycache__
