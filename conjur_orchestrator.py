@@ -326,7 +326,7 @@ if __name__ == "__main__":
             exit(1)
         deploy_leader_cluster_model(args.file)
 
-    if args.deploy in ["orchestrator"]:
+    if args.orchestrator in ["leader"]:
         # check if file exist for arg.file
         if not args.file:
             parser.print_help()
