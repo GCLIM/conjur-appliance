@@ -364,7 +364,7 @@ def retire_model():
             else:
                 print("...Failed")
 
-            if run_subprocess(command, shell=True) == :
+            if run_subprocess(command, shell=True).returncode == 0:
                 print("...Done")
             else:
                 print("...Failed")
