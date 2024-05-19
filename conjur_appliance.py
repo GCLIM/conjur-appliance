@@ -179,7 +179,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
     """)
 
         # Reload systemd
-        if run_subprocess(["systemctl", "--user", "daemon-reload"]).reurncode == 0:
+        if run_subprocess(["systemctl", "--user", "daemon-reload"]).returncode == 0:
             print("...Done")
         else:
             print("...Failed")
