@@ -80,6 +80,28 @@ def start_service(service_name):
         print("Error starting service:", e.stderr)
 
 
+def stop_service(service_name):
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "stop", service_name],
+            check=True, capture_output=True, text=True
+        )
+        print("Service stopped successfully.")
+    except subprocess.CalledProcessError as e:
+        print("Error stopping service:", e.stderr)
+
+
+def disable_service(service_name):
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "disable", service_name],
+            check=True, capture_output=True, text=True
+        )
+        print("Service disabled successfully.")
+    except subprocess.CalledProcessError as e:
+        print("Error disabling service:", e.stderr)
+
+
 def run_subprocess(command, shell=False):
     """
     Run a subprocess command and print its output for verbosity.
@@ -187,7 +209,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
 
         # Start service
         start_service("conjur.service")
-        
+
         # Enable service
         enable_service("conjur.service")
 
@@ -324,7 +346,7 @@ def retire_model():
     status = deployment_info.get("status")
 
     # Check if the deployment status is 'Deployed'
-    if status in ["Deployed","Failed"]:
+    if status in ["Deployed", "Failed"]:
         print(f"Retiring '{name}'...")
 
         # Stop and remove the container
@@ -333,13 +355,19 @@ def retire_model():
 
             if is_service_running(CONJUR_SERVICE_NAME):
                 # Stop and disable the service
-                subprocess.run(["systemctl", "--user", "stop", "conjur.service"])
-                subprocess.run(["systemctl", "--user", "disable", "conjur.service"])
+                stop_service(CONJUR_SERVICE_NAME)
+                disable_service(CONJUR_SERVICE_NAME)
 
             # Reload systemd
-            subprocess.run(["systemctl", "--user", "daemon-reload"])
+            if run_subprocess(["systemctl", "--user", "daemon-reload"]).returncode == 0:
+                print("...Done")
+            else:
+                print("...Failed")
 
-            subprocess.run(command, check=True, shell=True)
+            if run_subprocess(command, shell=True) == :
+                print("...Done")
+            else:
+                print("...Failed")
 
             # Update the deployment status to 'Retired'
             deployment_info["status"] = "Retired"
@@ -348,8 +376,10 @@ def retire_model():
             # Run retirement commands
             for retire_item, retire_command in RETIREMENT_LIST:
                 print(f"'{retire_item}'...", end="")
-                subprocess.run(retire_command, check=True, shell=True)
-                print("Done")
+                if run_subprocess(retire_command, shell=True).returncode == 0:
+                    print("...Done")
+                else:
+                    print("...Failed")
 
             # Disable linger for the current user
             disable_linger(os.getlogin())
@@ -445,7 +475,8 @@ def is_service_running(service_name):
     """
     try:
         # Run systemctl status <service_name> command
-        subprocess.run(["systemctl", "--user", "status", service_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        subprocess.run(["systemctl", "--user", "status", service_name], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, check=True)
         return True  # If the command executed successfully, service is running
     except subprocess.CalledProcessError:
         return False  # If the command failed, service is not running
@@ -474,7 +505,8 @@ def check_deployment_status():
         print(f'Registry: {deployment_info["registry"]}')
 
         # Return deployment status and Docker running status
-        return "Deployed", is_container_running(deployment_info["container_name"]), is_service_running(CONJUR_SERVICE_NAME)
+        return "Deployed", is_container_running(deployment_info["container_name"]), is_service_running(
+            CONJUR_SERVICE_NAME)
     else:
         # Return deployment status and Docker running status
         return "Retired", False, is_service_running(CONJUR_SERVICE_NAME)
