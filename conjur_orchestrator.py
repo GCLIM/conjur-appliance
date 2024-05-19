@@ -19,11 +19,20 @@ async def get_ssh_private_key():
     return key
 
 
-async def remote_run_with_key(hostname, port, username, commands):
+async def get_ssh_username():
+    """Fetch the SSH_USERNAME from environment variables."""
+    key = os.getenv('SSH_USERNAME')
+    if not key:
+        raise ValueError("SSH_USERNAME environment variable not set.")
+    return key
+
+
+async def remote_run_with_key(hostname, port, commands):
     """Run a command on a remote host with a private key."""
     # Read the private key
     private_key = await get_ssh_private_key()
-
+    # Read the username
+    username = await get_ssh_username()
     try:
         # Connect to the remote server using the SSH key
         async with asyncssh.connect(hostname, port=port, username=username, client_keys=[asyncssh.import_private_key(private_key)]) as conn:
@@ -216,7 +225,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
 """
 
-        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim", commands=commands))
+        asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
         print(f"Leader cluster deployment complete.")
 
 
@@ -247,7 +256,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m deploy -n {hostname} -t {info['type']} -reg {info['registry']}
 """
 
-        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim", commands=commands))
+        asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
         print(f"Follower deployment complete.")
 
 
@@ -275,7 +284,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
 
-        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim", commands=commands))
+        asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
     
     print(f"Leader cluster retired.")
 
@@ -304,7 +313,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
 
-        asyncio.run(remote_run_with_key(hostname, port=22, username="gclim", commands=commands))
+        asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
         print(f"Follower retired.")
 
 
