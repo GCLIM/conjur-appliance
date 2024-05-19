@@ -233,7 +233,7 @@ fi
 cd conjur-appliance
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_appliance.py -m deploy -name {hostname} -t info['type'] -reg {info['registry']}
+python3 conjur_appliance.py -m deploy -n {hostname} -t {info['type']} -reg {info['registry']}
 """
         key_path = "/home/gclim/.ssh/conjurappliance_ed25519"
         asyncio.run(remote_run_with_key(hostname, port=22, username="gclim",
