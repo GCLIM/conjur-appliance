@@ -24,5 +24,10 @@ conjur01.gcloud101.com:
 #specify standby node with sync_replication enabled
 conjur02.gcloud101.com:
     type: standby
-    name: standbynode1
+    name: standbynode01
+
+#specify standby node with sync_replication enabled
+conjur03.gcloud101.com:
+    type: standby
+    name: standbynode02
 
