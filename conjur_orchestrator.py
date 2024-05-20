@@ -35,7 +35,8 @@ async def remote_run_with_key(hostname, port, commands):
     username = await get_ssh_username()
     try:
         # Connect to the remote server using the SSH key
-        async with asyncssh.connect(hostname, port=port, username=username, client_keys=[asyncssh.import_private_key(private_key)]) as conn:
+        async with asyncssh.connect(hostname, port=port, username=username,
+                                    client_keys=[asyncssh.import_private_key(private_key)]) as conn:
             # Run the multiline command
             result = await conn.run(commands, check=True)
 
@@ -165,7 +166,7 @@ def leader_deployment_model(yaml_file):
     if info['registry'] == "":
         info['registry'] = default_registry
 
-    #check if deploying leader node
+    # check if deploying leader node
     if info['type'] == 'leader':
         print(f"Deploying leader cluster for leader node ...")
         print(f"Name: {info['name']}")
@@ -186,7 +187,7 @@ def leader_deployment_model(yaml_file):
         print(command)
         print(f"Leader cluster leader node deployment complete.")
 
-    #check if deploying sync standy node
+    # check if deploying sync standy node
     if info['type'] == 'standby':
         print(f"Deploying leader cluster for standby node ...")
         print(f"Name: {info['name']}")
@@ -285,7 +286,7 @@ python3 conjur_appliance.py -m retire
 """
 
         asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
-    
+
     print(f"Leader cluster retired.")
 
 
