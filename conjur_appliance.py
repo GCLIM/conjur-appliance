@@ -22,33 +22,31 @@ RETIREMENT_LIST = (
     ("Delete conjur.service file", "rm $HOME/.config/systemd/user/conjur.service"),
 )
 
-# EXCLUDE
-# --network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
-# --security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
-# --log-driver journald \
 DOCKER_PARAMETER_LEADER_STANDBY = f" \
 --add-host=conjur01.mon.local:172.31.27.126 \
 --detach \
+--network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
+--security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
 --publish '443:443' \
 --publish '444:444' \
 --publish '5432:5432' \
 --publish '1999:1999' \
 --cap-add AUDIT_WRITE \
+--log-driver journald \
 --volume {HOME}/cyberark/conjur/config:/etc/conjur/config:z \
 --volume {HOME}/cyberark/conjur/security:/opt/cyberark/conjur/security:z \
 --volume {HOME}/cyberark/conjur/backups:/opt/conjur/backup:z \
 --volume {HOME}/cyberark/conjur/logs:/var/log/conjur:z"
 
-# EXCLUDE
-# --network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
-# --security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
-# --log-driver journald \
 DOCKER_PARAMETER_FOLLOWER = f" \
 --add-host=conjur01.mon.local:172.31.27.126 \
 --detach \
+--network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
+--security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
 --publish '443:443' \
 --publish '444:444' \
 --cap-add AUDIT_WRITE \
+--log-driver journald \
 --volume {HOME}/cyberark/conjur/config:/etc/conjur/config:z \
 --volume {HOME}/cyberark/conjur/security:/opt/cyberark/conjur/security:z \
 --volume {HOME}/cyberark/conjur/backups:/opt/conjur/backup:z \
@@ -355,18 +353,26 @@ def deploy_model(name: str, type: str, registry: str) -> int:
             "status": ""
         }
 
-        # Check the type of the container and set the command accordingly
+        # Print the starting message and execute the command
+        print(f"Starting '{name}'...", end="")
 
+        # Export seccomp profile from image
+        command = f"{DOCKER} run --entrypoint '/bin/cat' {registry} /usr/share/doc/conjur/examples/seccomp.json > {HOME}/cyberark/conjur/security/seccomp.json"
+        if run_subprocess(command, shell=True).returncode == 0:
+            print("Exported seccomp profile from image.")
+        else:
+            print("Exporting seccomp profile from image....Failed")
+            exit_code = FAILED
+
+        # Check the type of the container and set the command accordingly
         command = ""
         if type in ["leader", "standby"]:
             # print(DOCKER_PARAMETER_LEADER_STANDBY)
-            command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
+            command = f"{DOCKER} run --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
         elif type == "follower":
             # print(DOCKER_PARAMETER_FOLLOWER)
-            command = f"{DOCKER} run -p 8082:80 --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
+            command = f"{DOCKER} run --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
 
-        # Print the starting message and execute the command
-        print(f"Starting '{name}'...", end="")
         if run_subprocess(command, shell=True).returncode == 0:
             deployment_info["status"] = "Deployed"
             print("...Deployed")

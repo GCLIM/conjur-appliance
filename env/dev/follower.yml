@@ -9,7 +9,7 @@ hostname: load-balancer-dns
 account_name: default
 
 #specify default_registry for docker image
-default_registry: dockerhub.gcloud101.com/my-sample-app
+default_registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
 #specify leader-cluster node specification:
 #hostname:
     #name: <container_name>
