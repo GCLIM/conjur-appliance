@@ -22,11 +22,13 @@ RETIREMENT_LIST = (
     ("Delete conjur.service file", "rm $HOME/.config/systemd/user/conjur.service"),
 )
 
+# EXCLUDE
+# --security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
 DOCKER_PARAMETER_LEADER_STANDBY = f" \
 --add-host=conjur01.mon.local:172.31.27.126 \
 --detach \
 --network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
---security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
+--security-opt seccomp=unconfined \
 --publish '443:443' \
 --publish '444:444' \
 --publish '5432:5432' \
@@ -38,11 +40,13 @@ DOCKER_PARAMETER_LEADER_STANDBY = f" \
 --volume {HOME}/cyberark/conjur/backups:/opt/conjur/backup:z \
 --volume {HOME}/cyberark/conjur/logs:/var/log/conjur:z"
 
+# EXCLUDE
+# --security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
 DOCKER_PARAMETER_FOLLOWER = f" \
 --add-host=conjur01.mon.local:172.31.27.126 \
 --detach \
 --network slirp4netns:enable_ipv6=false,port_handler=slirp4netns \
---security-opt seccomp=/opt/cyberark/conjur/security/seccomp.json \
+--security-opt seccomp=unconfined \
 --publish '443:443' \
 --publish '444:444' \
 --cap-add AUDIT_WRITE \
