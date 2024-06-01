@@ -11,6 +11,19 @@ tracemalloc.start()
 DOCKER = "podman"
 
 
+def print_announcement_banner(message):
+    # Determine the length of the message
+    message_length = len(message)
+
+    # Create the top and bottom border of the banner
+    border = "+" + "-" * (message_length + 2) + "+"
+
+    # Print the banner
+    print(border)
+    print("| " + message + " |")
+    print(border)
+
+
 async def get_ssh_private_key():
     """Fetch the SSH private key from environment variables."""
     key = os.getenv('SSH_PRIVATE_KEY')
@@ -225,7 +238,7 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
 """
-
+        print_announcement_banner()
         asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
         print(f"Leader cluster deployment complete.")
 
@@ -256,7 +269,7 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m deploy -n {hostname} -t {info['type']} -reg {info['registry']}
 """
-
+        print_announcement_banner(f"Deploying follower: {hostname}")
         asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
         print(f"Follower deployment complete.")
 
@@ -284,7 +297,7 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
-
+        print_announcement_banner(f"Retiring leader cluster: {hostname}")
         asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
 
     print(f"Leader cluster retired.")
@@ -313,7 +326,7 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
-
+        print_announcement_banner()
         asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
         print(f"Follower retired.")
 
