@@ -14,6 +14,7 @@ DOCKER = "podman"
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 def print_announcement_banner(message):
     # Determine the length of the message
     message_length = len(message)
@@ -25,6 +26,14 @@ def print_announcement_banner(message):
     print(border)
     print("| " + message + " |")
     print(border)
+
+
+async def get_admin_password():
+    """Fetch ADMIN_PASSWORD from environment variables."""
+    key = os.getenv('ADMIN_PASSWORD')
+    if not key:
+        raise ValueError("ADMIN_PASSWORD environment variable not set.")
+    return key
 
 
 async def get_ssh_private_key():
@@ -198,11 +207,14 @@ def leader_deployment_model(yaml_file):
         print(f"Account name: {account_name}")
         print(f"Leader cluster nodes: {read_leader_cluster_hostnames(yaml_file)}")
         leader_altnames = ','.join(read_leader_cluster_hostnames(yaml_file))
+        admin_password = get_admin_password()
         command = f"""
 {DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
---leader-altnames {leader_altnames} --admin-password MySecretPass1 {account_name}"""
-        print(command)
-        print(f"Leader cluster leader node deployment complete.")
+--leader-altnames {leader_altnames} --admin-password {admin_password} {account_name}"""
+        if conjur_appliance.run_subprocess(command, shell=True).returncode == 0:
+            print(f"Leader cluster leader node deployment complete...Done")
+        else:
+            print(f"Leader cluster leader node deployment complete...Failed")
 
     # check if deploying sync standy node
     if info['type'] == 'standby':
