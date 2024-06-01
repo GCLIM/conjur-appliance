@@ -242,7 +242,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
         standby_private_key = await get_ssh_private_key()
 
         # Connect to the first server and run the seed command
-        async with asyncssh.connect(leader_node_name, username=username, client_keys=[dap_private_key]) as conn1:
+        async with asyncssh.connect(leader_node_name, username=username, client_keys=[asyncssh.import_private_key(dap_private_key)] as conn1:
             seed_command = f"{DOCKER} exec {leader_container_name} evoke seed standby {standby_node_name} {leader_node_name}"
             seed_result = await conn1.run(seed_command, check=True)
             seed_output = seed_result.stdout.strip()
@@ -252,7 +252,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
                 temp_file.write(seed_output)
 
             # Connect to the second server and run the unpack command with the seed output
-            async with asyncssh.connect(standby_node_name, username=username, client_keys=[standby_private_key]) as conn2:
+            async with asyncssh.connect(standby_node_name, username=username, client_keys=[asyncssh.import_private_key(standby_private_key)]) as conn2:
                 unpack_command = f"{DOCKER} exec -i {standby_container_name} evoke unpack seed - <<EOF\n{seed_output}\nEOF"
                 await conn2.run(unpack_command, check=True)
 
