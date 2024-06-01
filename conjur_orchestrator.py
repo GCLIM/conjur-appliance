@@ -6,10 +6,13 @@ import conjur_appliance
 import asyncio
 import asyncssh
 import tracemalloc
+import logging
 
 tracemalloc.start()
 DOCKER = "podman"
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def print_announcement_banner(message):
     # Determine the length of the message
@@ -215,17 +218,60 @@ def leader_deployment_model(yaml_file):
     return
 
 
+# def deploy_leader_cluster_model(yaml_file):
+#     kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
+#
+#     if kind != 'leader-cluster':
+#         print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
+#         exit(1)
+#
+#     for hostname in read_leader_cluster_hostnames(yaml_file):
+#         info = lookup_by_leader_hostname(yaml_file, hostname)
+#         if info is None:
+#             exit(1)
+#
+#         commands = f"""
+# if [ -d "conjur-appliance" ]; then
+#     git -C conjur-appliance pull
+# else
+#     git clone https://github.com/GCLIM/conjur-appliance.git
+# fi
+# cd conjur-appliance
+# python3 -m pip install --user --upgrade pip
+# if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+# python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
+# """
+#         print_announcement_banner(f"Deploying leader cluster: {hostname}")
+#         asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
+#
+#     print(f"Leader cluster deployment complete.")
+
 def deploy_leader_cluster_model(yaml_file):
-    kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
+    try:
+        kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
+    except Exception as e:
+        logging.error(f"Failed to read leader cluster requirements from {yaml_file}: {e}")
+        return
 
     if kind != 'leader-cluster':
-        print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
-        exit(1)
+        error_message = f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment"
+        logging.error(error_message)
+        return
 
-    for hostname in read_leader_cluster_hostnames(yaml_file):
-        info = lookup_by_leader_hostname(yaml_file, hostname)
-        if info is None:
-            exit(1)
+    try:
+        hostnames = read_leader_cluster_hostnames(yaml_file)
+    except Exception as e:
+        logging.error(f"Failed to read leader cluster hostnames from {yaml_file}: {e}")
+        return
+
+    for hostname in hostnames:
+        try:
+            info = lookup_by_leader_hostname(yaml_file, hostname)
+            if info is None:
+                raise ValueError(f"No information found for hostname: {hostname}")
+        except Exception as e:
+            logging.error(f"Failed to look up hostname {hostname}: {e}")
+            continue  # Skip this hostname and proceed with the next one
 
         commands = f"""
 if [ -d "conjur-appliance" ]; then
@@ -238,9 +284,14 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
 """
-        print_announcement_banner(f"Deploying leader cluster: {hostname}")
-        asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
-        print(f"Leader cluster deployment complete.")
+        try:
+            print_announcement_banner(f"Deploying leader cluster: {hostname}")
+            asyncio.run(remote_run_with_key(hostname, port=22, commands=commands))
+        except Exception as e:
+            logging.error(f"Failed to deploy leader cluster on hostname {hostname}: {e}")
+            continue  # Skip this hostname and proceed with the next one
+
+    logging.info("Leader cluster deployment complete.")
 
 
 def deploy_follower_model(yaml_file):
