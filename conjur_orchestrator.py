@@ -12,7 +12,7 @@ tracemalloc.start()
 DOCKER = "podman"
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def print_announcement_banner(message):
     # Determine the length of the message
