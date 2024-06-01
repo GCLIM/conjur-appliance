@@ -252,12 +252,13 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
                 unpack_command = f"{DOCKER} exec -i {standby_container_name} evoke unpack seed - <<EOF\n{seed_output}\nEOF"
                 await conn2.run(unpack_command, check=True)
 
-        logger.info("Seed and unpack process completed successfully.")
+        logging.info("Seed and unpack process completed successfully.")
 
     except asyncssh.ProcessError as e:
-        logger.error(f"Command execution failed: {e}")
+        logging.error(f"Command execution failed: {e}")
+
     except (OSError, asyncssh.Error) as e:
-        logger.error(f"SSH connection failed: {e}")
+        logging.error(f"SSH connection failed: {e}")
 
 
 def deploy_leader_cluster_model(yaml_file):
