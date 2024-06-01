@@ -22,7 +22,7 @@ conjur01.gcloud101.com:
     name: leadernode
 
 #specify standby node with sync_replication enabled
-conjur02.gcloud101.com:
+conjur02-gcloud101-com:
     type: standby
     name: standbynode01
 
