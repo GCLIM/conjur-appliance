@@ -208,8 +208,8 @@ def leader_deployment_model(yaml_file):
         print(f"Leader cluster nodes: {read_leader_cluster_hostnames(yaml_file)}")
         leader_altnames = ','.join(read_leader_cluster_hostnames(yaml_file))
         admin_password = get_admin_password()
-        print(f"Admin password: {admin_password}")
-        command = f"""
+        env_vars = {'ADMIN_PASSWORD':f'{admin_password}'}
+        command = f"""env {env_vars} 
 {DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
 --leader-altnames {leader_altnames} --admin-password {admin_password} {account_name}"""
         if conjur_appliance.run_subprocess(command, shell=True).returncode == 0:
