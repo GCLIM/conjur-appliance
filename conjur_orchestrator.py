@@ -256,6 +256,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
             async with asyncssh.connect(standby_node_name, port=22, username=username,
                                         client_keys=[asyncssh.import_private_key(standby_private_key)]) as conn2:
                 unpack_command = f"{DOCKER} exec -i {standby_container_name} evoke unpack seed - <<EOF\n{seed_output}\nEOF"
+                print(unpack_command)
                 await conn2.run(unpack_command, check=True)
 
         logging.info("Seed and unpack process completed successfully.")
