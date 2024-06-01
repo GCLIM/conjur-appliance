@@ -232,6 +232,32 @@ def leader_deployment_model(yaml_file):
     return
 
 
+async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_name, standby_container_name):
+    try:
+        # Read username
+        username = await get_ssh_username()
+
+        # Read the private keys
+        dap_private_key = await get_ssh_private_key()
+        standby_private_key = await get_ssh_private_key()
+
+        # Connect to the first server and run the seed command
+        async with asyncssh.connect(leader_node_name, username=username, client_keys=[dap_private_key]) as conn1:
+            seed_command = f"{DOCKER} exec {leader_container_name} evoke seed standby standby_node_name leader_node_name"
+            seed_result = await conn1.run(seed_command, check=True)
+            seed_output = seed_result.stdout.strip()
+
+            # Connect to the second server and run the unpack command with the seed output
+            async with asyncssh.connect(standby_node_name, username=username, client_keys=[standby_private_key]) as conn2:
+                unpack_command = f"{DOCKER} exec -i standby_container_name evoke unpack seed - <<EOF\n{seed_output}\nEOF"
+                await conn2.run(unpack_command, check=True)
+
+        print("Seed and unpack process completed successfully.")
+
+    except (OSError, asyncssh.Error) as e:
+        print(f"SSH connection or command execution failed: {e}")
+
+
 def deploy_leader_cluster_model(yaml_file):
     try:
         kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
@@ -250,11 +276,16 @@ def deploy_leader_cluster_model(yaml_file):
         logging.error(f"Failed to read leader cluster hostnames from {yaml_file}: {e}")
         return
 
+    leader_node_name = ""
+    leader_container_name = ""
     for node_name in node_names:
         try:
             info = lookup_by_leader_hostname(yaml_file, node_name)
             if info is None:
                 raise ValueError(f"No information found for hostname: {node_name}")
+            if info['type'] == 'leader':
+                leader_node_name = node_name
+                leader_container_name = info['name']
         except Exception as e:
             logging.error(f"Failed to look up hostname {node_name}: {e}")
             continue  # Skip this hostname and proceed with the next one
@@ -276,6 +307,24 @@ python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
         except Exception as e:
             logging.error(f"Failed to deploy leader cluster on hostname {node_name}: {e}")
             continue  # Skip this hostname and proceed with the next one
+
+    # configure standby nodes
+    for node_name in node_names:
+        try:
+            info = lookup_by_leader_hostname(yaml_file, node_name)
+            if info is None:
+                raise ValueError(f"No information found for hostname: {node_name}")
+        except Exception as e:
+            logging.error(f"Failed to look up hostname {node_name}: {e}")
+            continue  # Skip this hostname and proceed with the next one
+        if info['type'] == 'standby':
+            print_announcement_banner(f"Configuring standby node: {node_name}")
+            try:
+                asyncio.run(seed_and_unpack(leader_node_name, leader_container_name, node_name, info['name']))
+            except Exception as e:
+                logging.error(f"Failed to configure standby node {node_name}: {e}")
+                continue  # Skip this hostname and proceed with the next one
+            print(f"Standby node {node_name} configured.")
 
     logging.info(f"Leader cluster deployment complete.")
 
