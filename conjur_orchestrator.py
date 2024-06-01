@@ -322,6 +322,10 @@ python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
             continue  # Skip this hostname and proceed with the next one
         if info['type'] == 'standby':
             print_announcement_banner(f"Configuring standby node: {node_name}")
+            print("Leader node name:", leader_node_name)
+            print("Leader container name:", leader_container_name)
+            print("Standby node name:", node_name)
+            print("Standby container name:", info['name'])
             try:
                 asyncio.run(seed_and_unpack(leader_node_name, leader_container_name, node_name, info['name']))
             except Exception as e:
