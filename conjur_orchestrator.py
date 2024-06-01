@@ -177,6 +177,7 @@ def leader_deployment_model(yaml_file):
 
     info = lookup_by_leader_hostname(yaml_file, current_hostname)
     if info is None:
+        print(f"No deployment information found for host '{current_hostname}'")
         exit(1)
 
     if info['registry'] == "":
