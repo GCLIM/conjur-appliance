@@ -76,7 +76,7 @@ def lookup_by_leader_hostname(yaml_file, hostname):
 
     if hostname in data:
         info = data[hostname]
-        print(f"Deployment info for host '{hostname}': {info}")
+        # print(f"Deployment info for host '{hostname}': {info}")
         host_info = {
             "type": info["type"],
             "name": info["name"],
@@ -96,7 +96,7 @@ def lookup_by_follower_hostname(yaml_file, hostname):
 
     if hostname in data:
         info = data[hostname]
-        print(f"Deployment info for host '{hostname}': {info}")
+        # print(f"Deployment info for host '{hostname}': {info}")
         host_info = {
             "type": "follower",
             "name": info["name"],
