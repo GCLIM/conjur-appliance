@@ -3,7 +3,7 @@
 kind: leader-cluster
 
 #specify <load-balancer-dns>
-hostname: load-balancer-dns
+hostname: myconjur.gcloud101.com
 
 #specify <account-name>
 account_name: default
