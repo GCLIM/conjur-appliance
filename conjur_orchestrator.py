@@ -176,7 +176,7 @@ def read_follower_hostnames(yaml_file):
     return hostnames
 
 
-def leader_deployment_model(yaml_file):
+async def leader_deployment_model(yaml_file):
     current_hostname = resolve_current_hostname()
     kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
 
@@ -207,7 +207,7 @@ def leader_deployment_model(yaml_file):
         print(f"Account name: {account_name}")
         print(f"Leader cluster nodes: {read_leader_cluster_hostnames(yaml_file)}")
         leader_altnames = ','.join(read_leader_cluster_hostnames(yaml_file))
-        admin_password = get_admin_password()
+        admin_password = await get_admin_password()
         command = f"""
 {DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
 --leader-altnames {leader_altnames} --admin-password {admin_password} {account_name}"""
