@@ -209,8 +209,7 @@ def leader_deployment_model(yaml_file):
         leader_altnames = ','.join(read_leader_cluster_hostnames(yaml_file))
         admin_password = get_admin_password()
 
-        env_vars = f'ADMIN_PASSWORD={admin_password}'
-        configure_leader_command = f"""env {env_vars} {DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
+        configure_leader_command = f"""{DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
         --leader-altnames {leader_altnames} --admin-password {admin_password} {account_name}"""
 
         if conjur_appliance.run_subprocess(configure_leader_command, shell=True).returncode == 0:
@@ -293,6 +292,7 @@ def deploy_leader_cluster_model(yaml_file):
     leader_node_name = ""
     leader_container_name = ""
     for node_name in node_names:
+        env_str = ""
         try:
             info = lookup_by_leader_hostname(yaml_file, node_name)
             if info is None:
@@ -300,11 +300,14 @@ def deploy_leader_cluster_model(yaml_file):
             if info['type'] == 'leader':
                 leader_node_name = node_name
                 leader_container_name = info['name']
+                admin_password = get_admin_password()
+                env_vars = f'ADMIN_PASSWORD={admin_password}'
+                env_str = f"env {env_vars}"
         except Exception as e:
             logging.error(f"Failed to look up hostname {node_name}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
-        commands = f"""
+        commands = f"""{env_str}
 if [ -d "conjur-appliance" ]; then
     git -C conjur-appliance pull
 else
