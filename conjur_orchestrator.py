@@ -208,10 +208,11 @@ def leader_deployment_model(yaml_file):
         logging.info(f"Leader cluster nodes: {read_leader_cluster_hostnames(yaml_file)}")
         leader_altnames = ','.join(read_leader_cluster_hostnames(yaml_file))
         admin_password = get_admin_password()
-        env_vars = {'ADMIN_PASSWORD': f'{admin_password}'}
-        configure_leader_command = f"""env {env_vars} 
-{DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
---leader-altnames {leader_altnames} --admin-password {admin_password} {account_name}"""
+
+        env_vars = f'ADMIN_PASSWORD={admin_password}'
+        configure_leader_command = f"""env {env_vars} {DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
+        --leader-altnames {leader_altnames} --admin-password {admin_password} {account_name}"""
+
         if conjur_appliance.run_subprocess(configure_leader_command, shell=True).returncode == 0:
             logging.info(f"Leader cluster leader node deployment complete...Done")
         else:
