@@ -10,6 +10,7 @@ import logging
 
 tracemalloc.start()
 DOCKER = "podman"
+SSH_PORT = 22
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -241,7 +242,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
         standby_private_key = await get_ssh_private_key()
 
         # Connect to the first server and run the seed command
-        async with asyncssh.connect(leader_node_name, port=22, username=username,
+        async with asyncssh.connect(leader_node_name, port=SSH_PORT, username=username,
                                     client_keys=[asyncssh.import_private_key(dap_private_key)]) as conn1:
             seed_command = f"{DOCKER} exec {leader_container_name} evoke seed standby {standby_node_name} {leader_node_name}"
             seed_result = await conn1.run(seed_command, check=True)
@@ -253,7 +254,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
                 temp_file.write(seed_output)
 
             # Transfer the temporary file to the standby node
-            async with asyncssh.connect(standby_node_name, port=22, username=username,
+            async with asyncssh.connect(standby_node_name, port=SSH_PORT, username=username,
                                         client_keys=[asyncssh.import_private_key(standby_private_key)]) as conn2:
                 await asyncssh.scp(temp_seed_file, (conn2, temp_seed_file))
 
@@ -268,7 +269,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
                 temp_file.write(seed_output)
 
             # Transfer the blank file to the standby node
-            async with asyncssh.connect(standby_node_name, port=22, username=username,
+            async with asyncssh.connect(standby_node_name, port=SSH_PORT, username=username,
                                         client_keys=[asyncssh.import_private_key(standby_private_key)]) as conn2:
                 await asyncssh.scp(temp_seed_file, (conn2, temp_seed_file))
 
@@ -332,7 +333,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         try:
             print_announcement_banner(f"Deploying leader cluster node: {node_name}")
             logging.info(f"Deploying leader cluster node: {node_name}")
-            asyncio.run(remote_run_with_key(node_name, port=22, commands=commands))
+            asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=commands))
         except Exception as e:
             logging.error(f"Failed to deploy leader cluster on hostname {node_name}: {e}")
             continue  # Skip this hostname and proceed with the next one
@@ -358,7 +359,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
                 logging.info(f"Step 2: Configure the Standby")
                 # Configure standby node using unencrypted master key
                 configure_standby_command = f"{DOCKER} exec {info['name']} evoke configure standby"
-                if asyncio.run(remote_run_with_key(node_name, port=22, commands=configure_standby_command)) == 0:
+                if asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=configure_standby_command)) == 0:
                     logging.info(f"Standby node {node_name} configured.")
 
             except Exception as e:
@@ -370,7 +371,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     logging.info("Step 3: Enable synchronous replication")
     try:
         sync_start_command = f"{DOCKER} exec {leader_container_name} sh -c 'evoke replication sync start'"
-        asyncio.run(remote_run_with_key(leader_node_name, port=22, commands=sync_start_command))
+        asyncio.run(remote_run_with_key(leader_node_name, port=SSH_PORT, commands=sync_start_command))
         logging.info(f"Leader cluster synchronous replication enabled successfully.")
 
     except Exception as e:
@@ -420,7 +421,7 @@ python3 conjur_appliance.py -m deploy -n {node_name} -t {info['type']} -reg {inf
 """
         try:
             print_announcement_banner(f"Deploying follower: {node_name}")
-            asyncio.run(remote_run_with_key(node_name, port=22, commands=commands))
+            asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=commands))
         except Exception as e:
             logging.error(f"Failed to deploy follower on hostname {node_name}: {e}")
             continue  # Skip this hostname and proceed with the next one
@@ -454,7 +455,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
         print_announcement_banner(f"Retiring leader cluster: {node_name}")
-        asyncio.run(remote_run_with_key(node_name, port=22, commands=commands))
+        asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=commands))
 
     print(f"Leader cluster retired.")
 
@@ -483,7 +484,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
         print_announcement_banner(f"Retiring follower: {node_name}")
-        asyncio.run(remote_run_with_key(node_name, port=22, commands=commands))
+        asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=commands))
         print(f"Follower retired.")
 
 
