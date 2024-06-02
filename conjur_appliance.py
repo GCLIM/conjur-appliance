@@ -529,8 +529,8 @@ def retire_model():
     if status in ["Deployed", "Failed"]:
         print(f"Retiring '{name}'...")
 
-        # Stop and remove the container
-        command = f"{DOCKER} stop {name} && {DOCKER} rm {name}"
+        # Stop and remove all containers
+        command = f"{DOCKER} stop {name} && {DOCKER} rm $({DOCKER} ps -qa)"
         try:
 
             if is_service_running(CONJUR_SERVICE_NAME):
