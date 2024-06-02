@@ -355,6 +355,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
                 continue  # Skip this hostname and proceed with the next one
 
     # enable synchronous replication
+    print_announcement_banner("Enabling synchronous replication")
     logging.info("Step 3: Enable synchronous replication")
     try:
         sync_start_command = f"{DOCKER} exec {leader_container_name} sh -c 'evoke replication sync start'"
