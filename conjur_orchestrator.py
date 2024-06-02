@@ -249,15 +249,18 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
             seed_output = seed_result.stdout.strip()
 
 
-            # Write seed output to a temporary file if too long
-            with open(f'/tmp/seed_output_for_{standby_container_name}.txt', 'w') as temp_file:
+            # Write seed output to a temporary file
+            temp_seed_file = f'/tmp/seed_output_for_{standby_container_name}.txt'
+            with open(temp_seed_file, 'w') as temp_file:
                 temp_file.write(seed_output)
 
-            # Connect to the second server and run the unpack command with the seed output
+            # Transfer the temporary file to the standby node
             async with asyncssh.connect(standby_node_name, port=22, username=username,
                                         client_keys=[asyncssh.import_private_key(standby_private_key)]) as conn2:
-                unpack_command = f"{DOCKER} exec -i {standby_container_name} evoke unpack seed - <<EOF\n{seed_output}\nEOF"
-                print(unpack_command)
+                await asyncssh.scp(temp_seed_file, (conn2, temp_seed_file))
+
+                # Run the unpack command using the transferred file
+                unpack_command = f"{DOCKER} exec -i {standby_container_name} evoke unpack seed - < {temp_seed_file}"
                 await conn2.run(unpack_command, check=True)
 
         logging.info("Seed and unpack process completed successfully.")
