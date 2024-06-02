@@ -302,12 +302,12 @@ def deploy_leader_cluster_model(yaml_file):
                 leader_container_name = info['name']
                 admin_password = get_admin_password()
                 env_vars = f'ADMIN_PASSWORD={admin_password}'
-                env_str = f"env {env_vars}"
+                env_str = f"env {env_vars} "
         except Exception as e:
             logging.error(f"Failed to look up hostname {node_name}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
-        commands = f"""{env_str}
+        commands = f"""
 if [ -d "conjur-appliance" ]; then
     git -C conjur-appliance pull
 else
@@ -316,10 +316,11 @@ fi
 cd conjur-appliance
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
+{env_str} python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
 """
         try:
             print_announcement_banner(f"Deploying leader cluster node: {node_name}")
+            logging.info(f"Deploying leader cluster node: {node_name}")
             asyncio.run(remote_run_with_key(node_name, port=22, commands=commands))
         except Exception as e:
             logging.error(f"Failed to deploy leader cluster on hostname {node_name}: {e}")
