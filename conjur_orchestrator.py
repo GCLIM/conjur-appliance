@@ -318,6 +318,7 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 {env_str} python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
 """
+
         try:
             print_announcement_banner(f"Deploying leader cluster node: {node_name}")
             logging.info(f"Deploying leader cluster node: {node_name}")
