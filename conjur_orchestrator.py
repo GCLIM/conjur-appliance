@@ -302,13 +302,12 @@ def deploy_leader_cluster_model(yaml_file):
                 leader_container_name = info['name']
                 admin_password = get_admin_password()
                 env_vars = f'ADMIN_PASSWORD={admin_password}'
-                env_str = f"env {env_vars}"
+                env_str = f"env {env_vars} "
         except Exception as e:
             logging.error(f"Failed to look up hostname {node_name}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
-        commands = f"""{env_str}
-if [ -d "conjur-appliance" ]; then
+        commands = f"""{env_str}if [ -d "conjur-appliance" ]; then
     git -C conjur-appliance pull
 else
     git clone https://github.com/GCLIM/conjur-appliance.git
