@@ -265,6 +265,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
 
         logging.info("Seed and unpack process completed successfully.")
 
+
     except asyncssh.ProcessError as e:
         logging.error(f"Command execution failed: {e}")
 
@@ -339,10 +340,15 @@ python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
             print("Standby container name:", info['name'])
             try:
                 asyncio.run(seed_and_unpack(leader_node_name, leader_container_name, node_name, info['name']))
+
+                # Configure standby node using unencrypted master key
+                command = f"{DOCKER} exec {info['name']} evoke configure standby"
+                if asyncio.run(remote_run_with_key(node_name, port=22, commands=command)) == 0:
+                    logging.info(f"Standby node {node_name} configured.")
+
             except Exception as e:
                 logging.error(f"Failed to configure standby node {node_name}: {e}")
                 continue  # Skip this hostname and proceed with the next one
-            print(f"Standby node {node_name} configured.")
 
     logging.info(f"Leader cluster deployment complete.")
 
