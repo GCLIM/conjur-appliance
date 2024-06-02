@@ -6,7 +6,7 @@ kind: leader-cluster
 hostname: myconjur.gcloud101.com
 
 #specify <account-name>
-account_name: default
+account_name: conjur_account
 
 #specify default_registry for docker image
 default_registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
@@ -16,18 +16,18 @@ default_registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
     #name: <container_name>
     #registry: container registry for docker image  (optional)
 
-#specify leader node
-conjur01.gcloud101.com:
-    type: leader
-    name: leadernode
-
 #specify standby node with sync_replication enabled
-conjur02.gcloud101.com:
+conjur01.gcloud101.com:
     type: standby
     name: standbynode01
 
 #specify standby node with sync_replication enabled
-conjur03.gcloud101.com:
+conjur02.gcloud101.com:
     type: standby
     name: standbynode02
+
+#specify leader node
+conjur03.gcloud101.com:
+    type: leader
+    name: leadernode
 
