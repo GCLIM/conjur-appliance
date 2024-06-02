@@ -181,7 +181,7 @@ def leader_deployment_model(yaml_file):
     kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
 
     if kind != 'leader-cluster':
-        print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
+        logging.error(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
         exit(1)
 
     info = lookup_by_leader_hostname(yaml_file, current_hostname)
@@ -194,41 +194,40 @@ def leader_deployment_model(yaml_file):
 
     # check if deploying leader node
     if info['type'] == 'leader':
-        print(f"Deploying leader cluster for leader node ...")
-        print(f"Name: {info['name']}")
-        print(f"Type: {info['type']}")
-        print(f"Registry: {info['registry']}")
+        logging.info(f"Deploying leader cluster for leader node ...")
+        logging.info(f"Name: {info['name']}")
+        logging.info(f"Type: {info['type']}")
+        logging.info(f"Registry: {info['registry']}")
         conjur_appliance.deploy_model(
             name=info["name"],
             type=info["type"],
             registry=info["registry"]
         )
-        print(f"Leader cluster name: {hostname}")
-        print(f"Account name: {account_name}")
-        print(f"Leader cluster nodes: {read_leader_cluster_hostnames(yaml_file)}")
+        logging.info(f"Leader cluster name: {hostname}")
+        logging.info(f"Account name: {account_name}")
+        logging.info(f"Leader cluster nodes: {read_leader_cluster_hostnames(yaml_file)}")
         leader_altnames = ','.join(read_leader_cluster_hostnames(yaml_file))
         admin_password = get_admin_password()
-        env_vars = {'ADMIN_PASSWORD':f'{admin_password}'}
-        command = f"""env {env_vars} 
+        env_vars = {'ADMIN_PASSWORD': f'{admin_password}'}
+        configure_leader_command = f"""env {env_vars} 
 {DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
 --leader-altnames {leader_altnames} --admin-password {admin_password} {account_name}"""
-        if conjur_appliance.run_subprocess(command, shell=True).returncode == 0:
-            print(f"Leader cluster leader node deployment complete...Done")
+        if conjur_appliance.run_subprocess(configure_leader_command, shell=True).returncode == 0:
+            logging.info(f"Leader cluster leader node deployment complete...Done")
         else:
-            print(f"Leader cluster leader node deployment complete...Failed")
+            logging.error(f"Leader cluster leader node deployment complete...Failed")
 
-    # check if deploying sync standy node
+    # check if deploying sync standby node
     if info['type'] == 'standby':
-        print(f"Deploying leader cluster for standby node ...")
-        print(f"Name: {info['name']}")
-        print(f"Type: {info['type']}")
-        print(f"Registry: {info['registry']}")
+        logging.info(f"Deploying leader cluster for standby node ...")
+        logging.info(f"Name: {info['name']}")
+        logging.info(f"Type: {info['type']}")
+        logging.info(f"Registry: {info['registry']}")
         conjur_appliance.deploy_model(
             name=info["name"],
             type=info["type"],
             registry=info["registry"]
         )
-        print(f"Leader cluster standby node deployment complete.")
     return
 
 
@@ -247,7 +246,6 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
             seed_command = f"{DOCKER} exec {leader_container_name} evoke seed standby {standby_node_name} {leader_node_name}"
             seed_result = await conn1.run(seed_command, check=True)
             seed_output = seed_result.stdout.strip()
-
 
             # Write seed output to a temporary file
             temp_seed_file = f'/tmp/seed_output_for_{standby_container_name}.txt'
@@ -333,24 +331,33 @@ python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
             logging.error(f"Failed to look up hostname {node_name}: {e}")
             continue  # Skip this hostname and proceed with the next one
         if info['type'] == 'standby':
-            print_announcement_banner(f"Configuring standby node: {node_name}")
-            print("Leader node name:", leader_node_name)
-            print("Leader container name:", leader_container_name)
+            logging.info(f"Configuring standby node: {node_name} with container: {info['name']}")
+            print_announcement_banner(f"Configuring standby node: {node_name} with container: {info['name']}")
             print("Standby node name:", node_name)
             print("Standby container name:", info['name'])
+            logging.info(f"Step 1: Create and unpack the Standby seed files")
             try:
                 asyncio.run(seed_and_unpack(leader_node_name, leader_container_name, node_name, info['name']))
 
+                logging.info(f"Step 2: Configure the Standby")
                 # Configure standby node using unencrypted master key
-                command = f"{DOCKER} exec {info['name']} evoke configure standby"
-                if asyncio.run(remote_run_with_key(node_name, port=22, commands=command)) == 0:
+                configure_standby_command = f"{DOCKER} exec {info['name']} evoke configure standby"
+                if asyncio.run(remote_run_with_key(node_name, port=22, commands=configure_standby_command)) == 0:
                     logging.info(f"Standby node {node_name} configured.")
 
             except Exception as e:
                 logging.error(f"Failed to configure standby node {node_name}: {e}")
                 continue  # Skip this hostname and proceed with the next one
 
-    logging.info(f"Leader cluster deployment complete.")
+    # enable synchronous replication
+    logging.info("Step 3: Enable synchronous replication")
+    try:
+        sync_start_command = f"{DOCKER} exec {leader_container_name} sh -c 'evoke replication sync start'"
+        asyncio.run(remote_run_with_key(leader_node_name, port=22, commands=sync_start_command))
+        logging.info(f"Leader cluster synchronous replication enabled successfully.")
+
+    except Exception as e:
+        logging.error(f"Failed to enable synchronous replication: {e}")
 
 
 def deploy_follower_model(yaml_file):
