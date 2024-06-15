@@ -1,0 +1,29 @@
+---
+- name: Deploy_Leader_Cluster
+  hosts: localhost
+
+  tasks:
+    - name: Checkout the code repository
+      git:
+        repo: 'https://github.com/GCLIM/conjur-appliance.git'
+        dest: ~/conjur-appliance
+        version: master
+        update: yes
+
+    - name: Install dependencies from requirements.txt
+      pip:
+        requirements: requirements.txt
+      args:
+        chdir: ~/conjur-appliance
+
+    - name: Deploy Conjur appliances
+      shell: |
+        python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
+      args:
+        chdir: ~/conjur-appliance
+      register: result
+
+    - name: Display results
+      debug:
+        var: result
+
