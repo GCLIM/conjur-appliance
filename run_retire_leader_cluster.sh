@@ -1,0 +1,1 @@
+ansible-playbook -i inventories/dev.yml retire_leader_cluster.yml
