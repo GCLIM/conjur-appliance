@@ -1,5 +1,5 @@
 ---
-- name: Deploy_Leader_Cluster
+- name: Deploy Leader Cluster
   hosts: localhost
   vars:
     ssh_key_path: "~/.ssh/conjurappliance_ed25519"
@@ -13,27 +13,31 @@
       set_fact:
         admin_password: "{{ lookup('env', 'ADMIN_PASSWORD') }}"
 
-    - name: Read the SSH private key file
-      slurp:
-        src: "{{ ssh_key_path }}"
-      register: slurped_key
-
-    - name: Decode the SSH private key
+    - name: Set ssh_private_key variable from environment SSH_PRIVATE_KEY variable
       set_fact:
-        ssh_private_key: "{{ slurped_key['content'] | community.general.b64decode }}"
-      no_log: false  # Prevent the key from appearing in logs
+        ssh_private_key: "{{ lookup('env', 'SSH_PRIVATE_KEY') }}"
 
-    - name: Example Task Using the SSH Private Key in Environment Variable
-      shell: |
-        echo "Using SSH Key: $SSH_PRIVATE_KEY"
-      environment:
-        SSH_PRIVATE_KEY: "{{ ssh_private_key }}"
-      register: example_result
-      no_log: false  # Hide the key in logs to prevent exposure
+    # - name: Read the SSH private key file
+    #   slurp:
+    #     src: "{{ ssh_key_path }}"
+    #   register: slurped_key
 
-    - name: Print the loaded SSH private key (for verification)
-      debug:
-        msg: "SSH Private Key: {{ ssh_private_key }}"
+    # - name: Decode the SSH private key
+    #   set_fact:
+    #     ssh_private_key: "{{ slurped_key['content'] | community.general.b64decode }}"
+    #   no_log: false  # Prevent the key from appearing in logs
+
+    # - name: Example Task Using the SSH Private Key in Environment Variable
+    #   shell: |
+    #     echo "Using SSH Key: $SSH_PRIVATE_KEY"
+    #   environment:
+    #     SSH_PRIVATE_KEY: "{{ ssh_private_key }}"
+    #   register: example_result
+    #   no_log: false  # Hide the key in logs to prevent exposure
+
+    # - name: Print the loaded SSH private key (for verification)
+    #   debug:
+    #     msg: "SSH Private Key: {{ ssh_private_key }}"
 
     # - name: Checkout the code repository
     #   git:
@@ -48,12 +52,12 @@
       args:
         chdir: ~/conjur-appliance
 
-    - name: Deploy Conjur appliances
+    - name: Deploy Conjur Leader Cluster
       shell: |
         python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
       args:
         chdir: ~/conjur-appliance
-      register: resul
+      register: result
       environment:
         SSH_USERNAME: "{{ user }}"
         ADMIN_PASSWORD: "{{ admin_password }}"
