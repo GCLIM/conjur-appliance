@@ -44,6 +44,6 @@ jobs:
                 SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
                 SSH_USERNAME: ${{ vars.USER }}
                 ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-              run: python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
+              run: python3 conjur_orchestrator.py -d leader z
 
 

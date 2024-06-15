@@ -1,0 +1,1 @@
+ansible-playbook -i inventories/dev.yml precheck.yml

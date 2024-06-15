@@ -1,0 +1,29 @@
+---
+- name: Pre-Checks
+  hosts: conjur_cluster
+
+  tasks:
+    - name: Checkout the code repository
+      git:
+        repo: 'https://github.com/GCLIM/conjur-appliance.git'
+        dest: ~/conjur-appliance
+        version: master
+        update: yes
+
+    - name: Install dependencies from requirements.txt
+      pip:
+        requirements: requirements.txt
+      args:
+        chdir: ~/conjur-appliance
+
+    - name: Run precheck script
+      shell: |
+        python3 conjur_appliance.py -m precheck
+      args:
+        chdir: ~/conjur-appliance
+      register: result
+
+    - name: Display precheck results
+      debug:
+        var: result
+
