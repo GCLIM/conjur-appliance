@@ -1,14 +1,46 @@
 ---
 - name: Deploy_Leader_Cluster
   hosts: localhost
+  vars:
+    ssh_key_path: "~/.ssh/conjurappliance_ed25519"
 
   tasks:
-    - name: Checkout the code repository
-      git:
-        repo: 'https://github.com/GCLIM/conjur-appliance.git'
-        dest: ~/conjur-appliance
-        version: master
-        update: yes
+    - name: Set user variable from environment USER variable
+      set_fact:
+        user: "{{ lookup('env', 'USER') }}"
+    
+    - name: Set admin_password variable from environment ADMIN_PASSWORD variable
+      set_fact:
+        admin_password: "{{ lookup('env', 'ADMIN_PASSWORD') }}"
+
+    - name: Read the SSH private key file
+      slurp:
+        src: "{{ ssh_key_path }}"
+      register: slurped_key
+
+    - name: Decode the SSH private key
+      set_fact:
+        ssh_private_key: "{{ slurped_key['content'] | community.general.b64decode }}"
+      no_log: false  # Prevent the key from appearing in logs
+
+    - name: Example Task Using the SSH Private Key in Environment Variable
+      shell: |
+        echo "Using SSH Key: $SSH_PRIVATE_KEY"
+      environment:
+        SSH_PRIVATE_KEY: "{{ ssh_private_key }}"
+      register: example_result
+      no_log: false  # Hide the key in logs to prevent exposure
+
+    - name: Print the loaded SSH private key (for verification)
+      debug:
+        msg: "SSH Private Key: {{ ssh_private_key }}"
+
+    # - name: Checkout the code repository
+    #   git:
+    #     repo: 'https://github.com/GCLIM/conjur-appliance.git'
+    #     dest: ~/conjur-appliance
+    #     version: master
+    #     update: yes
 
     - name: Install dependencies from requirements.txt
       pip:
@@ -21,7 +53,11 @@
         python3 conjur_orchestrator.py -d leader -f env/dev/leader_cluster.yml
       args:
         chdir: ~/conjur-appliance
-      register: result
+      register: resul
+      environment:
+        SSH_USERNAME: "{{ user }}"
+        ADMIN_PASSWORD: "{{ admin_password }}"
+        SSH_PRIVATE_KEY: "{{ ssh_private_key }}"
 
     - name: Display results
       debug:
