@@ -1,6 +1,6 @@
 ---
 - name: Pre-Checks
-  hosts: conjur_cluster
+  hosts: leader, standbys
 
   tasks:
     - name: Checkout the code repository

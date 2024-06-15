@@ -1,9 +1,14 @@
-conjur_cluster:
+leader:
   hosts:
     conjur01.gcloud101.com:
       ansible_host: 192.168.11.61
       name: leadernode
       type: leader
+  vars:
+    ansible_user: gclim
+    registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
+standbys: 
+  hosts:
     conjur02.gcloud101.com:
       ansible_host: 192.168.11.62
       name: standbynode01

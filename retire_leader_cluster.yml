@@ -1,6 +1,6 @@
 ---
 - name: Retire_Leader_Cluster
-  hosts: conjur_cluster
+  hosts: leader, standbys
 
   tasks:
     - name: Checkout the code repository
@@ -16,14 +16,14 @@
       args:
         chdir: ~/conjur-appliance
 
-    - name: Run precheck script
+    - name: Retire Conjur appliances
       shell: |
         python3 conjur_appliance.py -m retire
       args:
         chdir: ~/conjur-appliance
       register: result
 
-    - name: Display precheck results
+    - name: Display results
       debug:
         var: result
 

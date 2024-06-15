@@ -1,0 +1,1 @@
+ansible-playbook -i inventories/dev.yml deploy_leader_cluster_appliances.yml
