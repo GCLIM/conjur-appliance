@@ -435,7 +435,7 @@ fi
 cd conjur-appliance
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-{env_str} python3 conjur_orchestrator.py -o leader -f {yaml_file}
+{env_str} python3 conjur_orchestrator.py -o leader -i {yaml_file}
 """
         try:
             print_announcement_banner(f"Deploying leader cluster node: {hostname}")
@@ -605,7 +605,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--deploy", type=str, help="leader: deploy leader cluster\nfollower: deploy follower")
     parser.add_argument("-o", "--orchestrator", type=str, help="leader: orchestrator leader cluster deployment")
     parser.add_argument("-r", "--retire", type=str, help="leader: retire leader cluster")
-    parser.add_argument("-f", "--file", type=str, help="eg. env/dev/leader-cluster.yml")
+    parser.add_argument("-i", "--inventory", type=str, help="eg. inventories/dev.yml")
     args = parser.parse_args()
 
     # Check if no arguments are provided, then print help
@@ -613,61 +613,61 @@ if __name__ == "__main__":
         parser.print_help()
 
     if args.deploy in ["leader"]:
-        # check if file exist for arg.file
-        if not args.file:
+        # check if inventory exist for arg.inventory
+        if not args.inventory:
             parser.print_help()
-            print("Error: -f, --file cannot be empty.")
+            print("Error: -i, --inventory cannot be empty.")
             exit(1)
-        # check if file exist on the disk
-        if not os.path.exists(args.file):
-            print(f"Error: {args.file} does not exist.")
+        # check if inventory exist on the disk
+        if not os.path.exists(args.inventory):
+            print(f"Error: {args.inventory} does not exist.")
             exit(1)
-        deploy_leader_cluster_model(args.file)
+        deploy_leader_cluster_model(args.inventory)
 
     if args.orchestrator in ["leader"]:
-        # check if file exist for arg.file
-        if not args.file:
+        # check if inventory exist for arg.inventory
+        if not args.inventory:
             parser.print_help()
-            print("Error: -f, --file cannot be empty.")
+            print("Error: -i, --inventory cannot be empty.")
             exit(1)
-        # check if file exist on the disk
-        if not os.path.exists(args.file):
-            print(f"Error: {args.file} does not exist.")
+        # check if inventory exist on the disk
+        if not os.path.exists(args.inventory):
+            print(f"Error: {args.inventory} does not exist.")
             exit(1)
-        leader_deployment_model(args.file)
+        leader_deployment_model(args.inventory)
 
     if args.retire in ["leader"]:
-        # check if file exist for arg.file
-        if not args.file:
+        # check if inventory exist for arg.inventory
+        if not args.inventory:
             parser.print_help()
-            print("Error: -f, --file cannot be empty.")
+            print("Error: -i, --inventory cannot be empty.")
             exit(1)
-        # check if file exist on the disk
-        if not os.path.exists(args.file):
-            print(f"Error: {args.file} does not exist.")
+        # check if inventory exist on the disk
+        if not os.path.exists(args.inventory):
+            print(f"Error: {args.inventory} does not exist.")
             exit(1)
-        retire_leader_cluster_model(args.file)
+        retire_leader_cluster_model(args.inventory)
 
     if args.deploy in ["follower"]:
-        # check if file exist for arg.file
-        if not args.file:
+        # check if inventory exist for arg.inventory
+        if not args.inventory:
             parser.print_help()
-            print("Error: -f, --file cannot be empty.")
+            print("Error: -i, --inventory cannot be empty.")
             exit(1)
-        # check if file exist on the disk
-        if not os.path.exists(args.file):
-            print(f"Error: {args.file} does not exist.")
+        # check if inventory exist on the disk
+        if not os.path.exists(args.inventory):
+            print(f"Error: {args.inventory} does not exist.")
             exit(1)
-        deploy_follower_model(args.file)
+        deploy_follower_model(args.inventory)
 
     if args.retire in ["follower"]:
-        # check if file exist for arg.file
-        if not args.file:
+        # check if inventory exist for arg.inventory
+        if not args.inventory:
             parser.print_help()
-            print("Error: -f, --file cannot be empty.")
+            print("Error: -i, --inventory cannot be empty.")
             exit(1)
-        # check if file exist on the disk
-        if not os.path.exists(args.file):
-            print(f"Error: {args.file} does not exist.")
+        # check if inventory exist on the disk
+        if not os.path.exists(args.inventory):
+            print(f"Error: {args.inventory} does not exist.")
             exit(1)
-        retire_follower_model(args.file)
+        retire_follower_model(args.inventory)
