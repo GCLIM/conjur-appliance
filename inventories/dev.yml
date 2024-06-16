@@ -7,6 +7,9 @@ leader:
   vars:
     ansible_user: gclim
     registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
+    load_balancer_dns: myconjur.gcloud101.com
+    account_name: conjur_account
+
 standbys: 
   hosts:
     conjur02.gcloud101.com:
