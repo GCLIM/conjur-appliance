@@ -542,8 +542,8 @@ def deploy_follower_model(yaml_file):
     except Exception as e:
         logging.error(f"Failed to read follower hostnames from {yaml_file}: {e}")
         return
-
-    for hostname in hostnames:
+    
+    for hostname in hostnames['followers']:
         try:
             host_attributes = get_host_attributes(yaml_file, hostname)
             if host_attributes is None:
@@ -553,10 +553,6 @@ def deploy_follower_model(yaml_file):
             logging.error(f"Failed to look up hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
-        print(host_attributes)
-        container_name = host_attributes['name']
-        node_type = host_attributes['type']
-        registry = followers_vars['registry']
         commands = f"""
 if [ -d "conjur-appliance" ]; then
     git -C conjur-appliance pull
@@ -566,7 +562,7 @@ fi
 cd conjur-appliance
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_appliance.py -m deploy -n {container_name} -t {node_type} -reg {registry}
+python3 conjur_appliance.py -m deploy -n {host_attributes['name']} -t {host_attributes['type']} -reg {followers_vars['registry']}
 """
         try:
             print_announcement_banner(f"Deploying follower: {hostname}")
@@ -627,7 +623,7 @@ def retire_follower_model(yaml_file):
         logging.error(f"Failed to read follower hostnames from {yaml_file}: {e}")
         exit(1)
 
-    for hostname in follower_hostnames:
+    for hostname in follower_hostnames['followers']:
         host_attributes = get_host_attributes(yaml_file, hostname)
         if host_attributes is None:
             exit(1)
