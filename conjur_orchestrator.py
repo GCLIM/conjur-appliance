@@ -371,25 +371,25 @@ def leader_deployment_model(yaml_file):
             registry=leader_vars['registry']
         )
 
-        hostname = current_hostname
-        leader_hostname, leader_container_name = get_leader_hostname_containername(yaml_file)
-
-        logging.info(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
-        print_announcement_banner(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
-        print("Standby node name:", hostname)
-        print("Standby container name:", host_attributes['name'])
-        logging.info(f"Step 1: Create and unpack the Standby seed files")
-        try:
-            asyncio.run(seed_and_unpack(leader_hostname, leader_container_name, hostname, host_attributes['name']))
-
-            logging.info(f"Step 2: Configure the Standby")
-            # Configure standby node using unencrypted master key
-            configure_standby_command = f"{DOCKER} exec {host_attributes['name']} evoke configure standby"
-            if asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=configure_standby_command)) == 0:
-                logging.info(f"Standby node {hostname} configured.")
-
-        except Exception as e:
-            logging.error(f"Failed to configure standby node {hostname}: {e}")
+        # hostname = current_hostname
+        # leader_hostname, leader_container_name = get_leader_hostname_containername(yaml_file)
+        #
+        # logging.info(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
+        # print_announcement_banner(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
+        # print("Standby node name:", hostname)
+        # print("Standby container name:", host_attributes['name'])
+        # logging.info(f"Step 1: Create and unpack the Standby seed files")
+        # try:
+        #     asyncio.run(seed_and_unpack(leader_hostname, leader_container_name, hostname, host_attributes['name']))
+        #
+        #     logging.info(f"Step 2: Configure the Standby")
+        #     # Configure standby node using unencrypted master key
+        #     configure_standby_command = f"{DOCKER} exec {host_attributes['name']} evoke configure standby"
+        #     if asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=configure_standby_command)) == 0:
+        #         logging.info(f"Standby node {hostname} configured.")
+        #
+        # except Exception as e:
+        #     logging.error(f"Failed to configure standby node {hostname}: {e}")
 
     return
 
@@ -446,32 +446,32 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
             continue  # Skip this hostname and proceed with the next one
 
     # configure standby nodes
-    # for hostname in cluster_hostnames['standbys']:
-    #     try:
-    #         host_attributes = get_host_attributes(yaml_file, hostname)
-    #         if host_attributes is None:
-    #             raise ValueError(f"No information found for hostname: {hostname}")
-    #     except Exception as e:
-    #         logging.error(f"Failed to look up hostname {hostname}: {e}")
-    #         continue  # Skip this hostname and proceed with the next one
-    #     if host_attributes['type'] == 'standby':
-            # logging.info(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
-            # print_announcement_banner(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
-            # print("Standby node name:", hostname)
-            # print("Standby container name:", host_attributes['name'])
-            # logging.info(f"Step 1: Create and unpack the Standby seed files")
-            # try:
-            #     asyncio.run(seed_and_unpack(leader_node_name, leader_container_name, hostname, host_attributes['name']))
-            #
-            #     logging.info(f"Step 2: Configure the Standby")
-            #     # Configure standby node using unencrypted master key
-            #     configure_standby_command = f"{DOCKER} exec {host_attributes['name']} evoke configure standby"
-            #     if asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=configure_standby_command)) == 0:
-            #         logging.info(f"Standby node {hostname} configured.")
-            #
-            # except Exception as e:
-            #     logging.error(f"Failed to configure standby node {hostname}: {e}")
-            #     continue  # Skip this hostname and proceed with the next one
+    for hostname in cluster_hostnames['standbys']:
+        try:
+            host_attributes = get_host_attributes(yaml_file, hostname)
+            if host_attributes is None:
+                raise ValueError(f"No information found for hostname: {hostname}")
+        except Exception as e:
+            logging.error(f"Failed to look up hostname {hostname}: {e}")
+            continue  # Skip this hostname and proceed with the next one
+        if host_attributes['type'] == 'standby':
+            logging.info(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
+            print_announcement_banner(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
+            print("Standby node name:", hostname)
+            print("Standby container name:", host_attributes['name'])
+            logging.info(f"Step 1: Create and unpack the Standby seed files")
+            try:
+                asyncio.run(seed_and_unpack(leader_hostname, leader_container_name, hostname, host_attributes['name']))
+
+                logging.info(f"Step 2: Configure the Standby")
+                # Configure standby node using unencrypted master key
+                configure_standby_command = f"{DOCKER} exec {host_attributes['name']} evoke configure standby"
+                if asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=configure_standby_command)) == 0:
+                    logging.info(f"Standby node {hostname} configured.")
+
+            except Exception as e:
+                logging.error(f"Failed to configure standby node {hostname}: {e}")
+                continue  # Skip this hostname and proceed with the next one
 
     # enable synchronous replication
     print_announcement_banner("Enabling synchronous replication")
