@@ -17,6 +17,12 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 
 def print_announcement_banner(message):
+    """
+    Prints an announcement banner with the provided message.
+
+    Args:
+        message (str): The message to be displayed in the banner.
+    """
     # Determine the length of the message
     message_length = len(message)
 
@@ -84,7 +90,16 @@ async def remote_run_with_key(hostname, port, commands):
 
 # Function to find attributes for a given host name
 def get_host_attributes(yaml_file, host_name):
+    """
+    A function to retrieve attributes for a given host name from a YAML file.
 
+    Args:
+    yaml_file (str): The path to the YAML file containing the host attributes.
+    host_name (str): The name of the host to retrieve attributes for.
+
+    Returns:
+    dict or str: The attributes of the specified host if found, otherwise a message or None.
+    """
     # Read the YAML file
     with open(yaml_file, 'r') as file:
         yaml_dict = yaml.safe_load(file)
@@ -105,14 +120,13 @@ def get_host_attributes(yaml_file, host_name):
 
 def get_leader_hostname_containername(yaml_file):
     """
-    Extracts and returns the leader's hostname and name from the YAML configuration file.
+    A function to get the leader's hostname and container name from the YAML file.
 
     Args:
-    yaml_file (str): Path to the YAML configuration file.
+    yaml_file (str): The path to the YAML file.
 
     Returns:
-    tuple: A tuple containing the leader's hostname and name.
-           Returns (None, None) if leader information is not found.
+    tuple: The leader's hostname and container name.
     """
     # Read the YAML file
     with open(yaml_file, 'r') as file:
@@ -137,7 +151,15 @@ def get_leader_hostname_containername(yaml_file):
 
 # Function to get the variables for the leader
 def get_leader_vars(yaml_file):
+    """
+    A function to get the variables for the leader from a YAML file.
 
+    Args:
+    yaml_file (str): The path to the YAML file containing the leader variables.
+
+    Returns:
+    dict: The variables for the leader.
+    """
     # Read the YAML file
     with open(yaml_file, 'r') as file:
         yaml_dict = yaml.safe_load(file)
@@ -153,7 +175,15 @@ def get_leader_vars(yaml_file):
 
 # Function to get hostnames for leader and standbys
 def get_leader_cluster_hostnames(yaml_file):
+    """
+    A function to extract leader and standby hostnames from a YAML file.
 
+    Args:
+    yaml_file (str): The path to the YAML file containing the hostnames.
+
+    Returns:
+    dict: A dictionary containing two keys: 'leader' and 'standbys', each with a list of hostnames.
+    """
     # Read the YAML file
     with open(yaml_file, 'r') as file:
         yaml_dict = yaml.safe_load(file)
@@ -173,27 +203,6 @@ def get_leader_cluster_hostnames(yaml_file):
     cluster_hostnames['standbys'] = list(standbys_section.keys())
 
     return cluster_hostnames
-
-
-
-# def lookup_by_leader_hostname(yaml_file, hostname):
-#     with open(yaml_file, 'r') as file:
-#         data = yaml.safe_load(file)
-#
-#     if hostname in data:
-#         info = data[hostname]
-#         # print(f"Deployment info for host '{hostname}': {info}")
-#         host_info = {
-#             "type": info["type"],
-#             "name": info["name"],
-#             "registry": ""
-#         }
-#         if "registry" in info:
-#             host_info["registry"] = info["registry"]
-#         return host_info
-#     else:
-#         print(f"No deployment information found for host '{hostname}'")
-#         return None
 
 
 def lookup_by_follower_hostname(yaml_file, hostname):
@@ -217,6 +226,12 @@ def lookup_by_follower_hostname(yaml_file, hostname):
 
 
 def resolve_current_hostname():
+    """
+    Retrieves the current hostname of the host machine.
+
+    Returns:
+        str: The current hostname.
+    """
     try:
         hostname = socket.gethostname()
         print(f"The hostname of the current host is: {hostname}")
@@ -248,17 +263,6 @@ def read_follower_requirements(yaml_file):
     return kind, hostname, account_name, default_registry
 
 
-def read_leader_cluster_hostnames(yaml_file):
-    with open(yaml_file, 'r') as file:
-        data = yaml.safe_load(file)
-
-    # Extract all keys except known top-level keys
-    known_keys = {'kind', 'hostname', 'account_name', 'default_registry'}
-    hostnames = [key for key in data if key not in known_keys]
-
-    return hostnames
-
-
 def read_follower_hostnames(yaml_file):
     with open(yaml_file, 'r') as file:
         data = yaml.safe_load(file)
@@ -270,7 +274,19 @@ def read_follower_hostnames(yaml_file):
     return hostnames
 
 
-async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_name, standby_container_name):
+async def seed_and_unpack(leader_hostname, leader_container_name, standby_hostname, standby_container_name):
+    """
+    Asynchronously seeds and unpacks files between the leader and standby nodes using SSH connections.
+
+    Parameters:
+        leader_hostname (str): The hostname of the leader node.
+        leader_container_name (str): The container name of the leader node.
+        standby_hostname (str): The hostname of the standby node.
+        standby_container_name (str): The container name of the standby node.
+
+    Returns:
+        None
+    """
     try:
         # Read username
         username = await get_ssh_username()
@@ -280,9 +296,9 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
         standby_private_key = await get_ssh_private_key()
 
         # Connect to the first server and run the seed command
-        async with asyncssh.connect(leader_node_name, port=SSH_PORT, username=username,
+        async with asyncssh.connect(leader_hostname, port=SSH_PORT, username=username,
                                     client_keys=[asyncssh.import_private_key(dap_private_key)]) as conn1:
-            seed_command = f"{DOCKER} exec {leader_container_name} evoke seed standby {standby_node_name} {leader_node_name}"
+            seed_command = f"{DOCKER} exec {leader_container_name} evoke seed standby {standby_hostname} {leader_hostname}"
             seed_result = await conn1.run(seed_command, check=True)
             seed_output = seed_result.stdout.strip()
 
@@ -292,7 +308,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
                 temp_file.write(seed_output)
 
             # Transfer the temporary file to the standby node
-            async with asyncssh.connect(standby_node_name, port=SSH_PORT, username=username,
+            async with asyncssh.connect(standby_hostname, port=SSH_PORT, username=username,
                                         client_keys=[asyncssh.import_private_key(standby_private_key)]) as conn2:
                 await asyncssh.scp(temp_seed_file, (conn2, temp_seed_file))
 
@@ -307,7 +323,7 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
                 temp_file.write(seed_output)
 
             # Transfer the blank file to the standby node
-            async with asyncssh.connect(standby_node_name, port=SSH_PORT, username=username,
+            async with asyncssh.connect(standby_hostname, port=SSH_PORT, username=username,
                                         client_keys=[asyncssh.import_private_key(standby_private_key)]) as conn2:
                 await asyncssh.scp(temp_seed_file, (conn2, temp_seed_file))
 
@@ -322,6 +338,12 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
 
 
 def leader_deployment_model(yaml_file):
+    """
+    Deploy the leader or standby cluster based on the host attributes and leader variables.
+
+    :param yaml_file: The YAML file containing configuration details.
+    :return: None
+    """
     current_hostname = resolve_current_hostname()
     leader_vars = get_leader_vars(yaml_file)
 
@@ -371,31 +393,19 @@ def leader_deployment_model(yaml_file):
             registry=leader_vars['registry']
         )
 
-        # hostname = current_hostname
-        # leader_hostname, leader_container_name = get_leader_hostname_containername(yaml_file)
-        #
-        # logging.info(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
-        # print_announcement_banner(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
-        # print("Standby node name:", hostname)
-        # print("Standby container name:", host_attributes['name'])
-        # logging.info(f"Step 1: Create and unpack the Standby seed files")
-        # try:
-        #     asyncio.run(seed_and_unpack(leader_hostname, leader_container_name, hostname, host_attributes['name']))
-        #
-        #     logging.info(f"Step 2: Configure the Standby")
-        #     # Configure standby node using unencrypted master key
-        #     configure_standby_command = f"{DOCKER} exec {host_attributes['name']} evoke configure standby"
-        #     if asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=configure_standby_command)) == 0:
-        #         logging.info(f"Standby node {hostname} configured.")
-        #
-        # except Exception as e:
-        #     logging.error(f"Failed to configure standby node {hostname}: {e}")
-
     return
 
 
 def deploy_leader_cluster_model(yaml_file):
+    """
+    Deploys a leader cluster model based on the provided YAML file.
 
+    Parameters:
+    - yaml_file: the YAML file containing configuration information
+
+    Returns:
+    - None
+    """
     try:
         leader_vars = get_leader_vars(yaml_file)
     except Exception as e:
@@ -539,7 +549,15 @@ python3 conjur_appliance.py -m deploy -n {node_name} -t {info['type']} -reg {inf
 
 
 def retire_leader_cluster_model(yaml_file):
+    """
+    Retires the leader cluster model based on the provided YAML file.
 
+    Parameters:
+    - yaml_file: the YAML file containing configuration information
+
+    Returns:
+    - None
+    """
     try:
         cluster_hostnames = get_leader_cluster_hostnames(yaml_file)
 
