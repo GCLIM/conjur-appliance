@@ -553,6 +553,7 @@ def deploy_follower_model(yaml_file):
             logging.error(f"Failed to look up hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
+        print(host_attributes)
         container_name = host_attributes['name']
         node_type = host_attributes['type']
         registry = followers_vars['registry']
