@@ -82,25 +82,85 @@ async def remote_run_with_key(hostname, port, commands):
     except (OSError, asyncssh.Error) as e:
         print(f"SSH connection failed: {e}")
 
+# Function to find attributes for a given host name
+def get_host_attributes(yaml_file, host_name):
 
-def lookup_by_leader_hostname(yaml_file, hostname):
+    # Read the YAML file
     with open(yaml_file, 'r') as file:
-        data = yaml.safe_load(file)
+        yaml_dict = yaml.safe_load(file)
 
-    if hostname in data:
-        info = data[hostname]
-        # print(f"Deployment info for host '{hostname}': {info}")
-        host_info = {
-            "type": info["type"],
-            "name": info["name"],
-            "registry": ""
-        }
-        if "registry" in info:
-            host_info["registry"] = info["registry"]
-        return host_info
-    else:
-        print(f"No deployment information found for host '{hostname}'")
-        return None
+    # Check each section in the YAML dictionary
+    for section in yaml_dict.values():
+
+        # Check if 'hosts' key exists in the section
+        if 'hosts' in section:
+
+            # Check if the host name is in the 'hosts' dictionary
+            if host_name in section['hosts']:
+                return section['hosts'][host_name]
+
+    # If the host is not found, return a message or None
+    return f"Host '{host_name}' not found in the YAML data."
+
+# Function to get the variables for the leader
+def get_leader_vars(yaml_file):
+
+    # Read the YAML file
+    with open(yaml_file, 'r') as file:
+        yaml_dict = yaml.safe_load(file)
+
+    # Access the 'leader' section in the YAML dictionary
+    leader_section = yaml_dict.get('leader', {})
+
+    # Extract the 'vars' sub-section
+    leader_vars = leader_section.get('vars', {})
+
+    # Return the leader vars
+    return leader_vars
+
+# Function to get hostnames for leader and standbys
+def get_leader_cluster_hostnames(yaml_file):
+
+    # Read the YAML file
+    with open(yaml_file, 'r') as file:
+        yaml_dict = yaml.safe_load(file)
+
+    # Initialize dictionaries to hold the hostnames
+    cluster_hostnames = {
+        'leader': [],
+        'standbys': []
+    }
+
+    # Extract leader hostnames
+    leader_section = yaml_dict.get('leader', {}).get('hosts', {})
+    cluster_hostnames['leader'] = list(leader_section.keys())
+
+    # Extract standby hostnames
+    standbys_section = yaml_dict.get('standbys', {}).get('hosts', {})
+    cluster_hostnames['standbys'] = list(standbys_section.keys())
+
+    return cluster_hostnames
+
+
+
+# def lookup_by_leader_hostname(yaml_file, hostname):
+#     with open(yaml_file, 'r') as file:
+#         data = yaml.safe_load(file)
+#
+#     if hostname in data:
+#         info = data[hostname]
+#         # print(f"Deployment info for host '{hostname}': {info}")
+#         host_info = {
+#             "type": info["type"],
+#             "name": info["name"],
+#             "registry": ""
+#         }
+#         if "registry" in info:
+#             host_info["registry"] = info["registry"]
+#         return host_info
+#     else:
+#         print(f"No deployment information found for host '{hostname}'")
+#         return None
 
 
 def lookup_by_follower_hostname(yaml_file, hostname):
@@ -179,39 +239,36 @@ def read_follower_hostnames(yaml_file):
 
 def leader_deployment_model(yaml_file):
     current_hostname = resolve_current_hostname()
-    kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
+    leader_vars = get_leader_vars(yaml_file)
 
-    if kind != 'leader-cluster':
-        logging.error(f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment")
-        exit(1)
-
-    info = lookup_by_leader_hostname(yaml_file, current_hostname)
-    if info is None:
+    host_attributes = get_host_attributes(yaml_file, current_hostname)
+    if host_attributes is None:
         logging.error(f"No deployment information found for host '{current_hostname}'")
         exit(1)
 
-    if info['registry'] == "":
-        info['registry'] = default_registry
-
     # check if deploying leader node
-    if info['type'] == 'leader':
+    if host_attributes['type'] == 'leader':
         logging.info(f"Deploying leader cluster for leader node ...")
-        logging.info(f"Name: {info['name']}")
-        logging.info(f"Type: {info['type']}")
-        logging.info(f"Registry: {info['registry']}")
+        logging.info(f"Name: {host_attributes['name']}")
+        logging.info(f"Type: {host_attributes['type']}")
+        logging.info(f"Registry: {leader_vars['registry']}")
         conjur_appliance.deploy_model(
-            name=info["name"],
-            type=info["type"],
-            registry=info["registry"]
+            name=host_attributes['name'],
+            type=host_attributes['type'],
+            registry=leader_vars['registry']
         )
-        logging.info(f"Leader cluster name: {hostname}")
-        logging.info(f"Account name: {account_name}")
-        logging.info(f"Leader cluster nodes: {read_leader_cluster_hostnames(yaml_file)}")
-        leader_altnames = ','.join(read_leader_cluster_hostnames(yaml_file))
+        logging.info(f"Leader cluster name: {leader_vars['load_balancer_name']}")
+        logging.info(f"Account name: {leader_vars['account_name']}")
+
+        cluster_hostnames = get_leader_cluster_hostnames(yaml_file)
+        all_hostnames = cluster_hostnames['leader'] + cluster_hostnames['standbys']
+        leader_altnames = ", ".join(all_hostnames)
+
+        logging.info(f"Leader cluster nodes: {leader_altnames}")
         admin_password = get_admin_password()
 
-        configure_leader_command = f"""{DOCKER} exec {info['name']} evoke configure leader --accept-eula --hostname {hostname} \
-        --leader-altnames {leader_altnames} --admin-password {admin_password} {account_name}"""
+        configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_name']} \
+        --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
 
         if conjur_appliance.run_subprocess(configure_leader_command, shell=True).returncode == 0:
             logging.info(f"Leader cluster leader node deployment complete...Done")
@@ -219,15 +276,15 @@ def leader_deployment_model(yaml_file):
             logging.error(f"Leader cluster leader node deployment complete...Failed")
 
     # check if deploying sync standby node
-    if info['type'] == 'standby':
+    if host_attributes['type'] == 'standby':
         logging.info(f"Deploying leader cluster for standby node ...")
-        logging.info(f"Name: {info['name']}")
-        logging.info(f"Type: {info['type']}")
-        logging.info(f"Registry: {info['registry']}")
+        logging.info(f"Name: {host_attributes['name']}")
+        logging.info(f"Type: {host_attributes['type']}")
+        logging.info(f"Registry: {leader_vars['registry']}")
         conjur_appliance.deploy_model(
-            name=info["name"],
-            type=info["type"],
-            registry=info["registry"]
+            name=host_attributes['name'],
+            type=host_attributes['type'],
+            registry=leader_vars['registry']
         )
     return
 
@@ -284,39 +341,36 @@ async def seed_and_unpack(leader_node_name, leader_container_name, standby_node_
 
 
 def deploy_leader_cluster_model(yaml_file):
+
     try:
-        kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
+        leader_vars = get_leader_vars(yaml_file)
     except Exception as e:
-        logging.error(f"Failed to read leader cluster requirements from {yaml_file}: {e}")
-        return
+        logging.error(f"Failed to read leader cluster variables from {yaml_file}: {e}")
+        exit(1)
 
-    if kind != 'leader-cluster':
-        error_message = f"Invalid kind: {kind}, expects 'leader-cluster' for leader cluster deployment"
-        logging.error(error_message)
-        return
-
-    try:
-        node_names = read_leader_cluster_hostnames(yaml_file)
+   try:
+        cluster_hostnames = get_leader_cluster_hostnames(yaml_file)
     except Exception as e:
         logging.error(f"Failed to read leader cluster hostnames from {yaml_file}: {e}")
-        return
+        exit(1)
 
     leader_node_name = ""
     leader_container_name = ""
-    for node_name in node_names:
+
+    for hostname in cluster_hostnames['leader']:
         env_str = ""
         try:
-            info = lookup_by_leader_hostname(yaml_file, node_name)
-            if info is None:
-                raise ValueError(f"No information found for hostname: {node_name}")
-            if info['type'] == 'leader':
-                leader_node_name = node_name
-                leader_container_name = info['name']
+            host_attributes = get_host_attributes(yaml_file, hostname)
+            if host_attributes is None:
+                raise ValueError(f"No information found for hostname: {hostname}")
+            if host_attributes['type'] == 'leader':
+                leader_node_name = hostname
+                leader_container_name = host_attributes['name']
                 admin_password = get_admin_password()
                 env_vars = f'ADMIN_PASSWORD={admin_password}'
                 env_str = f"env {env_vars} "
         except Exception as e:
-            logging.error(f"Failed to look up hostname {node_name}: {e}")
+            logging.error(f"Failed to look up hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
         commands = f"""
@@ -328,42 +382,42 @@ fi
 cd conjur-appliance
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-{env_str} python3 conjur_orchestrator.py -o leader -f env/dev/leader_cluster.yml
+{env_str} python3 conjur_orchestrator.py -o leader -f {yaml_file}
 """
         try:
-            print_announcement_banner(f"Deploying leader cluster node: {node_name}")
-            logging.info(f"Deploying leader cluster node: {node_name}")
-            asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=commands))
+            print_announcement_banner(f"Deploying leader cluster node: {hostname}")
+            logging.info(f"Deploying leader cluster node: {hostname}")
+            asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=commands))
         except Exception as e:
-            logging.error(f"Failed to deploy leader cluster on hostname {node_name}: {e}")
+            logging.error(f"Failed to deploy leader cluster on hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
     # configure standby nodes
-    for node_name in node_names:
+    for hostname in cluster_hostnames['standbys']:
         try:
-            info = lookup_by_leader_hostname(yaml_file, node_name)
-            if info is None:
-                raise ValueError(f"No information found for hostname: {node_name}")
+            host_attributes = get_host_attributes(yaml_file, hostname)
+            if host_attributes is None:
+                raise ValueError(f"No information found for hostname: {hostname}")
         except Exception as e:
-            logging.error(f"Failed to look up hostname {node_name}: {e}")
+            logging.error(f"Failed to look up hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
-        if info['type'] == 'standby':
-            logging.info(f"Configuring standby node: {node_name} with container: {info['name']}")
-            print_announcement_banner(f"Configuring standby node: {node_name} with container: {info['name']}")
-            print("Standby node name:", node_name)
-            print("Standby container name:", info['name'])
+        if host_attributes['type'] == 'standby':
+            logging.info(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
+            print_announcement_banner(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
+            print("Standby node name:", hostname)
+            print("Standby container name:", host_attributes['name'])
             logging.info(f"Step 1: Create and unpack the Standby seed files")
             try:
-                asyncio.run(seed_and_unpack(leader_node_name, leader_container_name, node_name, info['name']))
+                asyncio.run(seed_and_unpack(leader_node_name, leader_container_name, hostname, host_attributes['name']))
 
                 logging.info(f"Step 2: Configure the Standby")
                 # Configure standby node using unencrypted master key
-                configure_standby_command = f"{DOCKER} exec {info['name']} evoke configure standby"
-                if asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=configure_standby_command)) == 0:
-                    logging.info(f"Standby node {node_name} configured.")
+                configure_standby_command = f"{DOCKER} exec {host_attributes['name']} evoke configure standby"
+                if asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=configure_standby_command)) == 0:
+                    logging.info(f"Standby node {hostname} configured.")
 
             except Exception as e:
-                logging.error(f"Failed to configure standby node {node_name}: {e}")
+                logging.error(f"Failed to configure standby node {hostname}: {e}")
                 continue  # Skip this hostname and proceed with the next one
 
     # enable synchronous replication
@@ -432,16 +486,18 @@ python3 conjur_appliance.py -m deploy -n {node_name} -t {info['type']} -reg {inf
 
 
 def retire_leader_cluster_model(yaml_file):
-    kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
 
-    if kind != 'leader-cluster':
-        print(f"Invalid kind: {kind}, expects 'leader-cluster' for leader retirement")
+    try:
+        cluster_hostnames = get_leader_cluster_hostnames(yaml_file)
+
+        # Combine leader and standby hostnames into a single list
+        all_hostnames = cluster_hostnames['leader'] + cluster_hostnames['standbys']
+
+    except Exception as e:
+        logging.error(f"Failed to read leader cluster hostnames from {yaml_file}: {e}")
         exit(1)
 
-    for node_name in read_leader_cluster_hostnames(yaml_file):
-        info = lookup_by_leader_hostname(yaml_file, node_name)
-        if info is None:
-            exit(1)
+    for hostname in all_hostnames:
 
         commands = f"""
 if [ -d "conjur-appliance" ]; then
@@ -454,8 +510,8 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
-        print_announcement_banner(f"Retiring leader cluster: {node_name}")
-        asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=commands))
+        print_announcement_banner(f"Retiring leader cluster: {hostname}")
+        asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=commands))
 
     print(f"Leader cluster retired.")
 
