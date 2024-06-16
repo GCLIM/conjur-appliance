@@ -357,7 +357,7 @@ def deploy_leader_cluster_model(yaml_file):
     leader_node_name = ""
     leader_container_name = ""
 
-    for hostname in cluster_hostnames['leader']:
+    for hostname in (cluster_hostnames['leader'] + cluster_hostnames['standbys']):
         env_str = ""
         try:
             host_attributes = get_host_attributes(yaml_file, hostname)
