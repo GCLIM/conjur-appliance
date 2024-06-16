@@ -1,0 +1,14 @@
+followers:
+  hosts:
+    conjur01.gcloud101.com:
+      ansible_host: 192.168.11.61
+      name: follower01
+      type: follower
+    conjur02.gcloud101.com:
+      ansible_host: 192.168.11.62
+      name: follower02
+      type: follower
+    conjur03.gcloud101.com:
+      ansible_host: 192.168.11.63
+      name: follower03
+      type: follower

@@ -1,1 +1,1 @@
-ansible-playbook -i inventories/dev.yml retire_followers.yml
+ansible-playbook -i inventories/dev_followers.yml retire_followers.yml
