@@ -348,7 +348,7 @@ def deploy_leader_cluster_model(yaml_file):
         logging.error(f"Failed to read leader cluster variables from {yaml_file}: {e}")
         exit(1)
 
-   try:
+    try:
         cluster_hostnames = get_leader_cluster_hostnames(yaml_file)
     except Exception as e:
         logging.error(f"Failed to read leader cluster hostnames from {yaml_file}: {e}")
