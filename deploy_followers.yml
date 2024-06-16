@@ -54,7 +54,7 @@
 
     - name: Deploy Followers
       shell: |
-        python3 conjur_orchestrator.py -d follower -i inventories/dev_followers.yml
+        python3 conjur_orchestrator.py -d follower -i inventories/dev.yml
       args:
         chdir: ~/conjur-appliance
       register: result
