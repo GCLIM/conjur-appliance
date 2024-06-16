@@ -262,7 +262,7 @@ def leader_deployment_model(yaml_file):
 
         cluster_hostnames = get_leader_cluster_hostnames(yaml_file)
         all_hostnames = cluster_hostnames['leader'] + cluster_hostnames['standbys']
-        leader_altnames = ", ".join(all_hostnames)
+        leader_altnames = ",".join(all_hostnames)
 
         logging.info(f"Leader cluster nodes: {leader_altnames}")
         admin_password = get_admin_password()
