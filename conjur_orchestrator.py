@@ -530,6 +530,7 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 
 def deploy_follower_model(yaml_file):
+
     try:
         followers_vars = get_followers_vars(yaml_file)
     except Exception as e:
@@ -552,6 +553,9 @@ def deploy_follower_model(yaml_file):
             logging.error(f"Failed to look up hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
+        container_name = host_attributes['name']
+        node_type = host_attributes['type']
+        registry = followers_vars['registry']
         commands = f"""
 if [ -d "conjur-appliance" ]; then
     git -C conjur-appliance pull
@@ -561,7 +565,7 @@ fi
 cd conjur-appliance
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_appliance.py -m deploy -n {host_attributes['name']} -t {host_attributes['type']} -reg {followers_vars['registry']}
+python3 conjur_appliance.py -m deploy -n {container_name} -t {node_type} -reg {registry}
 """
         try:
             print_announcement_banner(f"Deploying follower: {hostname}")
