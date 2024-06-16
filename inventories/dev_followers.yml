@@ -12,3 +12,6 @@ followers:
       ansible_host: 192.168.11.63
       name: follower03
       type: follower
+  vars:
+    ansible_user: gclim
+    registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
