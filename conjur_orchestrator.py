@@ -88,6 +88,7 @@ async def remote_run_with_key(hostname, port, commands):
     except (OSError, asyncssh.Error) as e:
         print(f"SSH connection failed: {e}")
 
+
 # Function to find attributes for a given host name
 def get_host_attributes(yaml_file, host_name):
     """
@@ -173,6 +174,22 @@ def get_leader_vars(yaml_file):
     # Return the leader vars
     return leader_vars
 
+
+def get_followers_vars(yaml_file):
+    # Read the YAML file
+    with open(yaml_file, 'r') as file:
+        yaml_dict = yaml.safe_load(file)
+
+    # Access the 'followers' section in the YAML dictionary
+    followers_section = yaml_dict.get('followers', {})
+
+    # Extract the 'vars' sub-section
+    followers_vars = followers_section.get('vars', {})
+
+    # Return the leader vars
+    return followers_vars
+
+
 # Function to get hostnames for leader and standbys
 def get_leader_cluster_hostnames(yaml_file):
     """
@@ -203,6 +220,23 @@ def get_leader_cluster_hostnames(yaml_file):
     cluster_hostnames['standbys'] = list(standbys_section.keys())
 
     return cluster_hostnames
+
+
+def get_follower_hostnames(yaml_file):
+    # Read the YAML file
+    with open(yaml_file, 'r') as file:
+        yaml_dict = yaml.safe_load(file)
+
+    # Initialize dictionaries to hold the hostnames
+    follower_hostnames = {
+        'followers': []
+    }
+
+    # Extract leader hostnames
+    followers_section = yaml_dict.get('followers', {}).get('hosts', {})
+    follower_hostnames['followers'] = list(followers_section.keys())
+
+    return follower_hostnames
 
 
 def lookup_by_follower_hostname(yaml_file, hostname):
@@ -497,32 +531,25 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 def deploy_follower_model(yaml_file):
     try:
-        kind, hostname, account_name, default_registry = read_follower_requirements(yaml_file)
+        followers_vars = get_followers_vars(yaml_file)
     except Exception as e:
-        logging.error(f"Failed to read follower requirements from {yaml_file}: {e}")
-        return
-
-    if kind != 'follower':
-        error_message = f"Invalid kind: {kind}, expects 'follower' for follower deployment"
-        logging.error(error_message)
-        return
+        logging.error(f"Failed to read follower variables from {yaml_file}: {e}")
+        exit(1)
 
     try:
-        hostnames = read_follower_hostnames(yaml_file)
+        hostnames = get_follower_hostnames(yaml_file)
     except Exception as e:
         logging.error(f"Failed to read follower hostnames from {yaml_file}: {e}")
         return
 
-    for node_name in hostnames:
+    for hostname in hostnames:
         try:
-            info = lookup_by_follower_hostname(yaml_file, node_name)
-            if info is None:
-                raise ValueError(f"No information found for hostname: {node_name}")
+            host_attributes = get_host_attributes(yaml_file, hostname)
+            if host_attributes is None:
+                raise ValueError(f"No information found for hostname: {hostname}")
 
-            if info['registry'] == "":
-                info['registry'] = default_registry
         except Exception as e:
-            logging.error(f"Failed to look up hostname {node_name}: {e}")
+            logging.error(f"Failed to look up hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
         commands = f"""
@@ -534,16 +561,16 @@ fi
 cd conjur-appliance
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_appliance.py -m deploy -n {node_name} -t {info['type']} -reg {info['registry']}
+python3 conjur_appliance.py -m deploy -n {host_attributes['name']} -t {host_attributes['type']} -reg {followers_vars['registry']}
 """
         try:
-            print_announcement_banner(f"Deploying follower: {node_name}")
-            asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=commands))
+            print_announcement_banner(f"Deploying follower: {hostname}")
+            asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=commands))
         except Exception as e:
-            logging.error(f"Failed to deploy follower on hostname {node_name}: {e}")
+            logging.error(f"Failed to deploy follower on hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
 
-        logging.info(f"Follower deployment complete for node: {node_name}")
+        logging.info(f"Follower deployment complete for node: {hostname}")
 
     logging.info("Follower model deployment complete.")
 
@@ -569,7 +596,6 @@ def retire_leader_cluster_model(yaml_file):
         exit(1)
 
     for hostname in all_hostnames:
-
         commands = f"""
 if [ -d "conjur-appliance" ]; then
     git -C conjur-appliance pull
@@ -588,15 +614,17 @@ python3 conjur_appliance.py -m retire
 
 
 def retire_follower_model(yaml_file):
-    kind, hostname, account_name, default_registry = read_leader_cluster_requirements(yaml_file)
 
-    if kind != 'follower':
-        print(f"Invalid kind: {kind}, expects 'follower' for follower retirement")
+    try:
+        follower_hostnames = get_follower_hostnames(yaml_file)
+
+    except Exception as e:
+        logging.error(f"Failed to read follower hostnames from {yaml_file}: {e}")
         exit(1)
 
-    for node_name in read_follower_hostnames(yaml_file):
-        info = lookup_by_follower_hostname(yaml_file, node_name)
-        if info is None:
+    for hostname in follower_hostnames:
+        host_attributes = get_host_attributes(yaml_file, hostname)
+        if host_attributes is None:
             exit(1)
 
         commands = f"""
@@ -610,8 +638,8 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
 """
-        print_announcement_banner(f"Retiring follower: {node_name}")
-        asyncio.run(remote_run_with_key(node_name, port=SSH_PORT, commands=commands))
+        print_announcement_banner(f"Retiring follower: {hostname}")
+        asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=commands))
         print(f"Follower retired.")
 
 
