@@ -257,7 +257,7 @@ def leader_deployment_model(yaml_file):
             type=host_attributes['type'],
             registry=leader_vars['registry']
         )
-        logging.info(f"Leader cluster name: {leader_vars['load_balancer_name']}")
+        logging.info(f"Leader cluster name: {leader_vars['load_balancer_dns']}")
         logging.info(f"Account name: {leader_vars['account_name']}")
 
         cluster_hostnames = get_leader_cluster_hostnames(yaml_file)
@@ -267,7 +267,7 @@ def leader_deployment_model(yaml_file):
         logging.info(f"Leader cluster nodes: {leader_altnames}")
         admin_password = get_admin_password()
 
-        configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_name']} \
+        configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_dns']} \
         --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
 
         if conjur_appliance.run_subprocess(configure_leader_command, shell=True).returncode == 0:
