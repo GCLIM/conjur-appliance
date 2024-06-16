@@ -176,6 +176,15 @@ def get_leader_vars(yaml_file):
 
 
 def get_followers_vars(yaml_file):
+    """
+    A function to get the variables for the followers from a YAML file.
+
+    Args:
+    - yaml_file (str): The path to the YAML file containing the follower variables.
+
+    Returns:
+    - dict: The variables for the followers.
+    """
     # Read the YAML file
     with open(yaml_file, 'r') as file:
         yaml_dict = yaml.safe_load(file)
@@ -223,6 +232,15 @@ def get_leader_cluster_hostnames(yaml_file):
 
 
 def get_follower_hostnames(yaml_file):
+    """
+    A function to get follower hostnames from a YAML file.
+
+    Args:
+    - yaml_file (str): The path to the YAML file.
+
+    Returns:
+    - dict: A dictionary containing the list of follower hostnames under the 'followers' key.
+    """
     # Read the YAML file
     with open(yaml_file, 'r') as file:
         yaml_dict = yaml.safe_load(file)
@@ -239,26 +257,6 @@ def get_follower_hostnames(yaml_file):
     return follower_hostnames
 
 
-def lookup_by_follower_hostname(yaml_file, hostname):
-    with open(yaml_file, 'r') as file:
-        data = yaml.safe_load(file)
-
-    if hostname in data:
-        info = data[hostname]
-        # print(f"Deployment info for host '{hostname}': {info}")
-        host_info = {
-            "type": "follower",
-            "name": info["name"],
-            "registry": ""
-        }
-        if "registry" in info:
-            host_info["registry"] = info["registry"]
-        return host_info
-    else:
-        print(f"No deployment information found for host '{hostname}'")
-        return None
-
-
 def resolve_current_hostname():
     """
     Retrieves the current hostname of the host machine.
@@ -273,39 +271,6 @@ def resolve_current_hostname():
     except socket.error as e:
         print(f"Error: {e}")
         return None
-
-
-def read_leader_cluster_requirements(yaml_file):
-    with open(yaml_file, 'r') as file:
-        data = yaml.safe_load(file)
-
-    kind = data.get('kind')
-    hostname = data.get('hostname')
-    account_name = data.get('account_name')
-    default_registry = data.get('default_registry')
-    return kind, hostname, account_name, default_registry
-
-
-def read_follower_requirements(yaml_file):
-    with open(yaml_file, 'r') as file:
-        data = yaml.safe_load(file)
-
-    kind = data.get('kind')
-    hostname = data.get('hostname')
-    account_name = data.get('account_name')
-    default_registry = data.get('default_registry')
-    return kind, hostname, account_name, default_registry
-
-
-def read_follower_hostnames(yaml_file):
-    with open(yaml_file, 'r') as file:
-        data = yaml.safe_load(file)
-
-    # Extract all keys except known top-level keys
-    known_keys = {'kind', 'hostname', 'account_name', 'default_registry'}
-    hostnames = [key for key in data if key not in known_keys]
-
-    return hostnames
 
 
 async def seed_and_unpack(leader_hostname, leader_container_name, standby_hostname, standby_container_name):
@@ -530,7 +495,15 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 
 def deploy_follower_model(yaml_file):
+    """
+    Deploys a follower model based on the provided YAML file.
 
+    Parameters:
+    - yaml_file: the YAML file containing configuration information
+
+    Returns:
+    - None
+    """
     try:
         followers_vars = get_followers_vars(yaml_file)
     except Exception as e:
@@ -615,7 +588,15 @@ python3 conjur_appliance.py -m retire
 
 
 def retire_follower_model(yaml_file):
+    """
+    Deploys a follower model based on the provided YAML file.
 
+    Parameters:
+    - yaml_file: the YAML file containing configuration information
+
+    Returns:
+    - None
+    """
     try:
         follower_hostnames = get_follower_hostnames(yaml_file)
 
@@ -649,9 +630,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Conjur deployment orchestrator",
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      add_help=True)
-    parser.add_argument("-d", "--deploy", type=str, help="leader: deploy leader cluster\nfollower: deploy follower")
+    parser.add_argument("-d", "--deploy", type=str, help="leader: deploy leader cluster\nfollower: deploy followers")
     parser.add_argument("-o", "--orchestrator", type=str, help="leader: orchestrator leader cluster deployment")
-    parser.add_argument("-r", "--retire", type=str, help="leader: retire leader cluster")
+    parser.add_argument("-r", "--retire", type=str, help="leader: retire leader cluster\nfollower: retire followers")
     parser.add_argument("-i", "--inventory", type=str, help="eg. inventories/dev.yml")
     args = parser.parse_args()
 
