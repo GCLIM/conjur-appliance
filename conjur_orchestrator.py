@@ -11,6 +11,8 @@ import logging
 tracemalloc.start()
 DOCKER = "podman"
 SSH_PORT = 22
+repository = "https://github.com/GCLIM/conjur-appliance.git"
+directory = "conjur-appliance"
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -436,12 +438,12 @@ def deploy_leader_cluster_model(yaml_file):
             continue  # Skip this hostname and proceed with the next one
 
         commands = f"""
-if [ -d "conjur-appliance" ]; then
-    git -C conjur-appliance pull
+if [ -d "{directory}" ]; then
+    git -C {directory} pull
 else
-    git clone https://github.com/GCLIM/conjur-appliance.git
+    git clone {repository}
 fi
-cd conjur-appliance
+cd {directory}
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 {env_str} python3 conjur_orchestrator.py -o leader -i {yaml_file}
@@ -527,12 +529,12 @@ def deploy_follower_model(yaml_file):
             continue  # Skip this hostname and proceed with the next one
 
         commands = f"""
-if [ -d "conjur-appliance" ]; then
-    git -C conjur-appliance pull
+if [ -d "{directory}" ]; then
+    git -C {directory} pull
 else
-    git clone https://github.com/GCLIM/conjur-appliance.git
+    git clone {repository}
 fi
-cd conjur-appliance
+cd {directory}
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m deploy -n {host_attributes['name']} -t {host_attributes['type']} -reg {followers_vars['registry']}
@@ -571,12 +573,12 @@ def retire_leader_cluster_model(yaml_file):
 
     for hostname in all_hostnames:
         commands = f"""
-if [ -d "conjur-appliance" ]; then
-    git -C conjur-appliance pull
+if [ -d "{directory}" ]; then
+    git -C {directory} pull
 else
-    git clone https://github.com/GCLIM/conjur-appliance.git
+    git clone {repository}
 fi
-cd conjur-appliance
+cd {directory}
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
@@ -610,12 +612,12 @@ def retire_follower_model(yaml_file):
             exit(1)
 
         commands = f"""
-if [ -d "conjur-appliance" ]; then
-    git -C conjur-appliance pull
+if [ -d "{directory}" ]; then
+    git -C {directory} pull
 else
-    git clone https://github.com/GCLIM/conjur-appliance.git
+    git clone {repository}
 fi
-cd conjur-appliance
+cd {directory}
 python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 python3 conjur_appliance.py -m retire
