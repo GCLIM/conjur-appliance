@@ -63,3 +63,22 @@ ssh-keygen -t ed25519 -C "your_email@example.com"
 
 scp -i ~/.ssh/conjurappliance_ed25519 -r ~/cyberark/dap/ gclim@conjur01.gcloud101.com:~/cyberark/dap/
 
+----
+
+# to ensure the folder exists in the container   
+podman exec leadernode mkdir -p /opt/cyberark/dap/certificates
+podman cp ~/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem
+podman cp ~/cyberark/dap/certificates/conjur-dev-leader-master-key.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-master-key.pem
+podman cp ~/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem
+
+podman exec leadernode evoke ca import --no-restart --root /opt/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem
+podman exec leadernode evoke ca import \
+    --no-restart \
+    --key /opt/cyberark/dap/certificates/conjur-dev-leader-master-key.pem \
+    --set /opt/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem
+
+podman exec leadernode sv restart conjur nginx pg seed
+
+
+podman cp /opt/cyberark/dap/certificates/master-key.pem <container-name>:/opt/cyberark/dap/certificates/follower-key.pem
+podman cp /opt/cyberark/dap/certificates/master-cert.pem <container-name>:/opt/cyberark/dap/certificates/follower-cert.pem
