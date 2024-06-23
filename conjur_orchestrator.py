@@ -393,7 +393,7 @@ def leader_deployment_model(yaml_file):
         configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_dns']} \
         --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
 
-        if appliance.run_subprocess(configure_leader_command, shell=True).returncode == 0:
+        if appliance.run_subprocess(configure_leader_command, shell=True) == 0:
             logging.info(f"Leader cluster leader node deployment complete...Done")
         else:
             logging.error(f"Leader cluster leader node deployment complete...Failed")
