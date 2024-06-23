@@ -687,6 +687,7 @@ def restart_conjur_services(name):
         logging.info(f"Restarted Conjur services: {result}")
     except subprocess.CalledProcessError as e:
         logging.error(f"Error: {e}")
+        logging.info(f"Restarted Conjur services: {result}")
 
 
 if __name__ == "__main__":
