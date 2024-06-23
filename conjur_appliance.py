@@ -683,7 +683,8 @@ def restart_conjur_services(name):
     """
     command = f"{DOCKER} exec {name} sv restart conjur nginx pg seed"
     try:
-        run_subprocess(command, shell=True)
+        result = run_subprocess(command, shell=True)
+        logging.info(f"Restarted Conjur services: {result}")
     except subprocess.CalledProcessError as e:
         logging.error(f"Error: {e}")
 
