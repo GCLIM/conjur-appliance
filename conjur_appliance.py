@@ -626,7 +626,7 @@ def import_root_certificate(name, file_path):
         run_subprocess(command, shell=True)
 
         # Import the root certificate
-        command = f"{DOCKER} exec {name} evoke ca import --force --no-restart --root /opt/cyberark/dap/certificates/ca-chain.pem"
+        command = f"{DOCKER} exec {name} evoke ca import --no-restart --root /opt/cyberark/dap/certificates/ca-chain.pem"
         run_subprocess(command, shell=True)
 
 
@@ -648,7 +648,7 @@ def import_ha_cluster_certificates(name, master_key, master_cert):
         run_subprocess(command, shell=True)
 
         # Import the certificates
-        command = f"{DOCKER} exec {name} evoke ca import --force --no-restart --key /opt/cyberark/dap/certificates/master-key.pem --set /opt/cyberark/dap/certificates/master-cert.pem"
+        command = f"{DOCKER} exec {name} evoke ca import --no-restart --key /opt/cyberark/dap/certificates/master-key.pem --set /opt/cyberark/dap/certificates/master-cert.pem"
         run_subprocess(command, shell=True)
 
 
