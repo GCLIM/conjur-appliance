@@ -648,7 +648,7 @@ def import_ha_cluster_certificates(name, master_key, master_cert):
         run_subprocess(command, shell=True)
 
         # Import the certificates
-        command = f"{DOCKER} exec {name} evoke ca import --force --no-restart --root --key /opt/cyberark/dap/certificates/master-key.pem --set /opt/cyberark/dap/certificates/master-cert.pem"
+        command = f"{DOCKER} exec {name} evoke ca import --force --no-restart --key /opt/cyberark/dap/certificates/master-key.pem --set /opt/cyberark/dap/certificates/master-cert.pem"
         run_subprocess(command, shell=True)
 
 
