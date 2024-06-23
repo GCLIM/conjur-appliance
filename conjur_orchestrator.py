@@ -400,7 +400,7 @@ def leader_deployment_model(yaml_file):
 
         # check if ca-chain exit, import CA root certificate
         if file_exists(leader_vars['ca_chain']):
-            appliance.import_root_certificate(host_attributes['name'], leader_vars['ca_chain']
+            appliance.import_root_certificate(host_attributes['name'], leader_vars['ca_chain'])
 
             # check if master key and master cert exit, import certificates
             if file_exists(leader_vars['master_key']) and file_exists(leader_vars['master_cert']):
