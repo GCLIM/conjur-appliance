@@ -120,7 +120,7 @@ def run_subprocess(command, shell=False):
     Returns:
         CompletedProcess: The result of the subprocess.run call.
     """
-    logging.info(f"Running command: {' '.join(command) if isinstance(command, list) else command}", end="")
+    logging.info(f"Running command: {' '.join(command) if isinstance(command, list) else command}")
     try:
         result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
