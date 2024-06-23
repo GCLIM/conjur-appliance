@@ -393,10 +393,17 @@ def leader_deployment_model(yaml_file):
         configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_dns']} \
         --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
 
-        if appliance.run_subprocess(configure_leader_command, shell=True) == 0:
-            logging.info(f"Leader cluster leader node deployment complete...Done")
-        else:
-            logging.error(f"Leader cluster leader node deployment complete...Failed")
+        try:
+            appliance.run_subprocess(configure_leader_command, shell=True)
+        except Exception as e:
+            logging.error(f"Subprocess failed: {e}")
+            continue
+
+
+        # if appliance.run_subprocess(configure_leader_command, shell=True) == 0:
+        #     logging.info(f"Leader cluster leader node deployment complete...Done")
+        # else:
+        #     logging.error(f"Leader cluster leader node deployment complete...Failed")
 
         # check if ca-chain exit, import CA root certificate
         if file_exists(leader_vars['ca_chain']):
