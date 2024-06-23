@@ -1,3 +1,5 @@
+import subprocess
+
 import yaml
 import socket
 import argparse
@@ -395,10 +397,12 @@ def leader_deployment_model(yaml_file):
 
         try:
             appliance.run_subprocess(configure_leader_command, shell=True)
-        except Exception as e:
+        except subprocess.CalledProcessError as e:
             logging.error(f"Subprocess failed: {e}")
             continue
-
+        except Exception as e:
+            logging.error(f"Unexpected error: {e}")
+            continue
 
         # if appliance.run_subprocess(configure_leader_command, shell=True) == 0:
         #     logging.info(f"Leader cluster leader node deployment complete...Done")
