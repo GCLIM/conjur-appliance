@@ -408,10 +408,10 @@ def deploy_model(name: str, type: str, registry: str) -> int:
 
         if run_subprocess(command, shell=True).returncode == 0:
             deployment_info["status"] = "Deployed"
-            print("...Deployed")
+            print("Conjur appliance...Deployed")
         else:
             deployment_info["status"] = "Failed"
-            print("...Failed")
+            print("Conjur appliance deployment...Failed")
             exit_code = FAILED
 
         # Save the current directory
@@ -438,9 +438,9 @@ def deploy_model(name: str, type: str, registry: str) -> int:
 
         # Reload systemd
         if run_subprocess(["systemctl", "--user", "daemon-reload"]).returncode == 0:
-            print("...Done")
+            print("Daemon reloaded...Done")
         else:
-            print("...Failed")
+            print("Daemon reloaded...Failed")
             exit_code = FAILED
 
         # Start service
