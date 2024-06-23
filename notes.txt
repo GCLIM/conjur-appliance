@@ -70,15 +70,24 @@ podman exec leadernode mkdir -p /opt/cyberark/dap/certificates
 podman cp ~/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem
 podman cp ~/cyberark/dap/certificates/conjur-dev-leader-master-key.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-master-key.pem
 podman cp ~/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem
+podman cp ~/cyberark/dap/certificates/conjur-dev-follower-key.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-follower-key.pem
+podman cp ~/cyberark/dap/certificates/conjur-dev-follower-cert.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-follower-cert.pem
 
+# import root CA certificate
 podman exec leadernode evoke ca import --no-restart --root /opt/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem
+
+# import HA leader cluster certificate
 podman exec leadernode evoke ca import \
     --no-restart \
     --key /opt/cyberark/dap/certificates/conjur-dev-leader-master-key.pem \
     --set /opt/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem
 
+# import Follower load balancer certificate
+docker exec leadernode evoke ca import \
+    --no-restart \
+    --key /opt/cyberark/dap/certificates/conjur-dev-leader-follower-key.pem \
+    /opt/cyberark/dap/certificates/conjur-dev-leader-follower-cert.pem
+
+# resert conjur services
 podman exec leadernode sv restart conjur nginx pg seed
 
-
-podman cp /opt/cyberark/dap/certificates/master-key.pem <container-name>:/opt/cyberark/dap/certificates/follower-key.pem
-podman cp /opt/cyberark/dap/certificates/master-cert.pem <container-name>:/opt/cyberark/dap/certificates/follower-cert.pem
