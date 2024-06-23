@@ -601,7 +601,7 @@ def import_root_certificate(name, file_path):
         run_subprocess(command, shell=True)
 
         # Import the root certificate
-        command = f"{DOCKER} exec {name} evoke ca import --no-restart --root /opt/cyberark/dap/certificates/ca-chain.pem"
+        command = f"{DOCKER} exec {name} evoke ca import --force --no-restart --root /opt/cyberark/dap/certificates/ca-chain.pem"
         run_subprocess(command, shell=True)
 
 
