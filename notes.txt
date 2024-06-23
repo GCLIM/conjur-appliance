@@ -67,20 +67,21 @@ scp -i ~/.ssh/conjurappliance_ed25519 -r ~/cyberark/dap/ gclim@conjur01.gcloud10
 
 # to ensure the folder exists in the container   
 podman exec leadernode mkdir -p /opt/cyberark/dap/certificates
-podman cp ~/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem
-podman cp ~/cyberark/dap/certificates/conjur-dev-leader-master-key.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-master-key.pem
-podman cp ~/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem
+podman cp ~/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem leadernode:/opt/cyberark/dap/certificates/ca-chain.pem
+podman cp ~/cyberark/dap/certificates/conjur-dev-leader-master-key.pem leadernode:/opt/cyberark/dap/certificates/master-key.pem
+podman cp ~/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem leadernode:/opt/cyberark/dap/certificates/master-cert.pem
+
 podman cp ~/cyberark/dap/certificates/conjur-dev-follower-key.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-follower-key.pem
-podman cp ~/cyberark/dap/certificates/conjur-dev-follower-cert.pem leadernode:/opt/cyberark/dap/certificates/conjur-dev-follower-cert.pem
+podman cp ~/cyberark/dap/certificates/conjur-dev-follower-cert.pemls leadernode:/opt/cyberark/dap/certificates/conjur-dev-follower-cert.pem
 
 # import root CA certificate
-podman exec leadernode evoke ca import --no-restart --root /opt/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem
+podman exec leadernode evoke ca import --no-restart --root /opt/cyberark/dap/certificates/ca-chain.pem
 
 # import HA leader cluster certificate
 podman exec leadernode evoke ca import \
     --no-restart \
-    --key /opt/cyberark/dap/certificates/conjur-dev-leader-master-key.pem \
-    --set /opt/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem
+    --key /opt/cyberark/dap/certificates/master-key.pem \
+    --set /opt/cyberark/dap/certificates/master-cert.pem
 
 # import Follower load balancer certificate
 docker exec leadernode evoke ca import \
@@ -88,6 +89,6 @@ docker exec leadernode evoke ca import \
     --key /opt/cyberark/dap/certificates/conjur-dev-leader-follower-key.pem \
     /opt/cyberark/dap/certificates/conjur-dev-leader-follower-cert.pem
 
-# resert conjur services
+# restart conjur services
 podman exec leadernode sv restart conjur nginx pg seed
 

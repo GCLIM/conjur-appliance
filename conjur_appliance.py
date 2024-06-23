@@ -147,9 +147,11 @@ def run_subprocess(command, shell=False):
     try:
         result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True)
         if result.stdout:
-            logging.info(f"\nstdout:\n{result.stdout}")
+            logging.info(f"Output:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Command failed with error: {e}")
+        logging.error(f"Command failed with exit status {e.returncode}: {e.cmd}")
+        logging.error(f"Standard output:\n{e.stdout}")
+        logging.error(f"Standard error:\n{e.stderr}")   
         raise  # Re-raise the exception to let the caller handle it
 
     return result
@@ -686,8 +688,12 @@ def restart_conjur_services(name):
         result = run_subprocess(command, shell=True)
         logging.info(f"Restarted Conjur services: {result}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error: {e}")
-        logging.info(f"Restarted Conjur services: {result}")
+        if e.returncode == 1:
+            logging.warning("Received exit status 1.")
+            # specific handling for exit status 1 can be done here.
+        else:
+            logging.warning(f"Handling general case for non-zero exit status: {e.returncode}")
+            # can add further actions here like retries, alternate commands, etc.
 
 
 if __name__ == "__main__":
