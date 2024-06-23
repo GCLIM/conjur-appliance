@@ -367,15 +367,15 @@ def deploy_model(name: str, type: str, registry: str) -> int:
     if deployment_status != "Deployed":
 
         # Print the deployment details
-        print(f"Deploying '{name}' '{type}' node with '{registry}' ...")
+        print(f"Deploying '{name}' '{type}' node with '{registry}'...")
 
         # Iterate over the deployment list and execute each command
         for deploy_item, deploy_command in DEPLOYMENT_LIST:
-            print(f"'{deploy_item}' ...", end="")
+            print(f"'{deploy_item}'...", end="")
             if run_subprocess(deploy_command, shell=True).returncode == 0:
-                print("...Done")
+                print("Done")
             else:
-                print("...Failed")
+                print("Failed")
                 exit_code = 1
 
         # Create a dictionary to store deployment information
@@ -394,7 +394,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         if run_subprocess(command, shell=True).returncode == 0:
             print("Exported seccomp profile from image.")
         else:
-            print("Exporting seccomp profile from image....Failed")
+            print("Exporting seccomp profile from image...Failed")
             exit_code = FAILED
 
         # Check the type of the container and set the command accordingly
@@ -682,7 +682,10 @@ def restart_conjur_services(name):
     :return: None
     """
     command = f"{DOCKER} exec {name} sv restart conjur nginx pg seed"
-    run_subprocess(command, shell=True)
+    try:
+        run_subprocess(command, shell=True)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error: {e}")
 
 
 if __name__ == "__main__":
@@ -696,6 +699,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--name", type=str, help="container name")
     parser.add_argument("-reg", "--registry", type=str, help="Registry of the docker image")
     parser.add_argument("-sys", "--sysctld", type=str, help="config")
+    parser.add_argument("-test", "--test", type=str, help="reserved for test function")
     args = parser.parse_args()
 
     # Check if no arguments are provided, then print help
@@ -755,3 +759,6 @@ if __name__ == "__main__":
 
     if args.sysctld == "config":
         sysctld_config()
+
+    if args.test == "restart":
+        restart_conjur_services(name="leadernode")

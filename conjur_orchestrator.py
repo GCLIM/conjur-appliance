@@ -392,8 +392,7 @@ def leader_deployment_model(yaml_file):
         logging.info(f"Leader cluster nodes: {leader_altnames}")
         admin_password = get_admin_password()
 
-        configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_dns']} \
-        --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
+        configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_dns']} --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
 
         try:
             appliance.run_subprocess(configure_leader_command, shell=True)
