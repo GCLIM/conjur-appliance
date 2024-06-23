@@ -2,20 +2,20 @@ import yaml
 import socket
 import argparse
 import os
-import conjur_appliance
+import conjur_appliance as appliance
 import asyncio
 import asyncssh
 import tracemalloc
 import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 tracemalloc.start()
 DOCKER = "podman"
 SSH_PORT = 22
 repository = "https://github.com/GCLIM/conjur-appliance.git"
 directory = "conjur-appliance"
-
-# Set up logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def print_announcement_banner(message):
@@ -338,6 +338,22 @@ async def seed_and_unpack(leader_hostname, leader_container_name, standby_hostna
         logging.error(f"SSH connection failed: {e}")
 
 
+def file_exists(file_path):
+    """
+    Check if a file exists.
+
+    :param file_path: The path to the file.
+    :return: True if the file exists, False otherwise.
+    """
+    if not os.path.exists(file_path):
+        logging.error(f"File does not exist: {file_path}")
+        return False
+    else:
+        logging.info(f"File exists: {file_path}")
+        return True
+
+
+
 def leader_deployment_model(yaml_file):
     """
     Deploy the leader or standby cluster based on the host attributes and leader variables.
@@ -359,7 +375,7 @@ def leader_deployment_model(yaml_file):
         logging.info(f"Name: {host_attributes['name']}")
         logging.info(f"Type: {host_attributes['type']}")
         logging.info(f"Registry: {leader_vars['registry']}")
-        conjur_appliance.deploy_model(
+        appliance.deploy_model(
             name=host_attributes['name'],
             type=host_attributes['type'],
             registry=leader_vars['registry']
@@ -377,10 +393,22 @@ def leader_deployment_model(yaml_file):
         configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_dns']} \
         --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
 
-        if conjur_appliance.run_subprocess(configure_leader_command, shell=True).returncode == 0:
+        if appliance.run_subprocess(configure_leader_command, shell=True).returncode == 0:
             logging.info(f"Leader cluster leader node deployment complete...Done")
         else:
             logging.error(f"Leader cluster leader node deployment complete...Failed")
+
+        # check if ca-chain exit, import CA root certificate
+        if file_exists(leader_vars['ca_chain']):
+            appliance.import_root_certificate(host_attributes['name'], leader_vars['ca_chain']
+
+            # check if master key and master cert exit, import certificates
+            if file_exists(leader_vars['master_key']) and file_exists(leader_vars['master_cert']):
+                appliance.import_ha_cluster_certificates(host_attributes['name'], leader_vars['master_key'], leader_vars['master_cert'])
+
+            # restart conjur services
+            appliance.restart_conjur_services(host_attributes['name'])
+
 
     # check if deploying sync standby node
     if host_attributes['type'] == 'standby':
@@ -388,7 +416,7 @@ def leader_deployment_model(yaml_file):
         logging.info(f"Name: {host_attributes['name']}")
         logging.info(f"Type: {host_attributes['type']}")
         logging.info(f"Registry: {leader_vars['registry']}")
-        conjur_appliance.deploy_model(
+        appliance.deploy_model(
             name=host_attributes['name'],
             type=host_attributes['type'],
             registry=leader_vars['registry']

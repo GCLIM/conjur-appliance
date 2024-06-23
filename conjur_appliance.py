@@ -3,6 +3,10 @@ import json
 import subprocess
 import os
 from typing import Dict, Any
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 DOCKER = "podman"
 DEPLOYMENT_FILE = "deployment.json"
@@ -576,6 +580,84 @@ def retire_model():
     else:
         # Print message if the deployment status is not 'Deployed'
         print(f"The deployment status for '{name}' is not 'Deployed'.")
+
+
+def import_root_certificate(name, file_path):
+    """
+    Import the root certificate file.
+
+    :param file_path: The path to the file.
+    :return: None
+    """
+    if os.path.exists(file_path):
+        logging.info(f"Importing root certificate: {file_path}")
+
+        # Create the directory if it doesn't exist
+        command = f"{DOCKER} exec {name} mkdir -p /opt/cyberark/dap/certificates"
+        run_subprocess(command, shell=True)
+
+        # Copy the file
+        command = f"{DOCKER} cp {file_path} {name}:/opt/cyberark/dap/certificates/ca-chain.pem"
+        run_subprocess(command, shell=True)
+
+        # Import the root certificate
+        command = f"{DOCKER} exec {name} evoke ca import --no-restart --root /opt/cyberark/dap/certificates/ca-chain.pem"
+        run_subprocess(command, shell=True)
+
+
+def import_ha_cluster_certificates(name, master_key, master_cert):
+    """
+    Import the HA cluster certificates.
+
+    :param master_key: The path to the master key file.
+    :param master_cert: The path to the master certificate file.
+    :return: None
+    """
+    if os.path.exists(master_key) and os.path.exists(master_cert):
+        logging.info("Importing HA cluster certificates")
+
+        # Copy the files
+        command = f"{DOCKER} cp {master_key} {name}:/opt/cyberark/dap/certificates/master-key.pem"
+        run_subprocess(command, shell=True)
+        command = f"{DOCKER} cp {master_cert} {name}:/opt/cyberark/dap/certificates/master-cert.pem"
+        run_subprocess(command, shell=True)
+
+        # Import the certificates
+        command = f"{DOCKER} exec {name} evoke ca import --no-restart --key /opt/cyberark/dap/certificates/master-key.pem --set /opt/cyberark/dap/certificates/master-cert.pem"
+        run_subprocess(command, shell=True)
+
+
+def import_follower_certificate(name, follower_key, follower_cert):
+    """
+    Import the follower certificate.
+
+    :param follower_key: The path to the follower key file.
+    :param follower_cert: The path to the follower certificate file.
+    :return: None
+    """
+    if os.path.exists(follower_key) and os.path.exists(follower_cert):
+        logging.info("Importing follower certificate")
+
+        # Copy the files
+        command = f"{DOCKER} cp {follower_key} {name}:/opt/cyberark/dap/certificates/follower-key.pem"
+        run_subprocess(command, shell=True)
+        command = f"{DOCKER} cp {follower_cert} {name}:/opt/cyberark/dap/certificates/follower-cert.pem"
+        run_subprocess(command, shell=True)
+
+        # Import the certificates
+        command = f"{DOCKER} exec {name} evoke ca import --no-restart --key /opt/cyberark/dap/certificates/follower-key.pem --set /opt/cyberark/dap/certificates/follower-cert.pem"
+        run_subprocess(command, shell=True)
+
+
+def restart_conjur_services(name):
+    """
+    Restart the Conjur services.
+
+    :param name: The name of the container.
+    :return: None
+    """
+    command = f"{DOCKER} exec {name} sv restart conjur nginx pg seed"
+    run_subprocess(command, shell=True)
 
 
 if __name__ == "__main__":

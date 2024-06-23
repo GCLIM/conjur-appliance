@@ -9,6 +9,9 @@ leader:
     registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
     load_balancer_dns: conjur-dev-leader.gcloud101.com
     account_name: conjur_account
+    ca_chain: ~/cyberark/dap/certificates/conjur-dev-leader-ca-chain.pem
+    master_key: ~/cyberark/dap/certificates/conjur-dev-leader-master-key.pem
+    master_cert: ~/cyberark/dap/certificates/conjur-dev-leader-master-cert.pem
 
 standbys: 
   hosts:
@@ -42,3 +45,5 @@ followers:
     ansible_user: gclim
     registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
     load_balancer_dns: conjur-dev.gcloud101.com
+    follower_key: ~/cyberark/dap/certificates/conjur-dev-follower-key.pem
+    follower_cert: ~/cyberark/dap/certificates/conjur-dev-follower-cert.pem
