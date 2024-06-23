@@ -109,6 +109,29 @@ def disable_service(service_name):
         print("Error disabling service:", e.stderr)
 
 
+# def run_subprocess(command, shell=False):
+#     """
+#     Run a subprocess command and print its output for verbosity.
+#
+#     Args:
+#         command (list or str): The command to run.
+#         shell (bool): Whether to run the command in the shell.
+#
+#     Returns:
+#         CompletedProcess: The result of the subprocess.run call.
+#     """
+#     logging.info(f"Running command: {' '.join(command) if isinstance(command, list) else command}")
+#     try:
+#         result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True)
+#     except subprocess.CalledProcessError as e:
+#         logging.error(f"\nError: {e}")
+#         return exit(1)
+#     if result.stdout:
+#         logging.info(f"\nstdout:\n{result.stdout}")
+#     result.check_returncode()  # This will raise CalledProcessError if the command failed
+#     return result
+
+
 def run_subprocess(command, shell=False):
     """
     Run a subprocess command and print its output for verbosity.
@@ -123,12 +146,12 @@ def run_subprocess(command, shell=False):
     logging.info(f"Running command: {' '.join(command) if isinstance(command, list) else command}")
     try:
         result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True)
+        if result.stdout:
+            logging.info(f"\nstdout:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"\nError: {e}")
-        return None
-    if result.stdout:
-        logging.info(f"\nstdout:\n{result.stdout}")
-    result.check_returncode()  # This will raise CalledProcessError if the command failed
+        logging.error(f"Command failed with error: {e}")
+        raise  # Re-raise the exception to let the caller handle it
+
     return result
 
 
