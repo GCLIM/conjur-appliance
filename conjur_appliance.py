@@ -120,12 +120,14 @@ def run_subprocess(command, shell=False):
     Returns:
         CompletedProcess: The result of the subprocess.run call.
     """
-    print(f"Running command: {' '.join(command) if isinstance(command, list) else command}", end="")
-    result = subprocess.run(command, capture_output=True, text=True, shell=shell)
+    logging.info(f"Running command: {' '.join(command) if isinstance(command, list) else command}", end="")
+    try:
+        result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"\nError: {e}")
+        return None
     if result.stdout:
-        print(f"\nstdout:\n{result.stdout}")
-    if result.stderr:
-        print(f"\nstderr:\n{result.stderr}")
+        logging.info(f"\nstdout:\n{result.stdout}")
     result.check_returncode()  # This will raise CalledProcessError if the command failed
     return result
 
