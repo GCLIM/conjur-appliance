@@ -63,12 +63,36 @@ async def get_ssh_username():
     return key
 
 
+def mask_sensitive_info(command):
+    """
+    Masks sensitive information in a command string.
+    """
+    # Define patterns for sensitive information
+    sensitive_patterns = [
+        r"--admin-password\s*(\S+)",                  # For passwords after `--admin-password` in commands
+        r"password\s*=\s*['\"]([^'\"]+)['\"]",  # For "password='value'"
+        r"ADMIN_PASSWORD\s*=\s*['\"]([^'\"]+)['\"]", # For "ADMIN_PASSWORD='value'"
+    ]
+
+    # Replace sensitive parts with masked value
+    masked_command = command
+    for pattern in sensitive_patterns:
+        masked_command = re.sub(pattern, r"-p ****", masked_command)
+    return masked_command
+
+
 async def remote_run_with_key(hostname, port, commands):
     """Run a command on a remote host with a private key."""
     # Read the private key
     private_key = await get_ssh_private_key()
     # Read the username
     username = await get_ssh_username()
+
+    for command in commands:
+        # Log the masked command
+        masked_command = mask_sensitive_info(command)
+        logging.info(f"Executing command: {masked_command}")
+
     try:
         # Connect to the remote server using the SSH key
         async with asyncssh.connect(hostname, port=port, username=username,
@@ -76,21 +100,18 @@ async def remote_run_with_key(hostname, port, commands):
             # Run the multiline command
             result = await conn.run(commands, check=True)
 
-            # Collect the results
-            output = result.stdout
-            error = result.stderr
-
             # Print the output and error
-            if output:
-                print("Output:")
-                print(output)
+            if result.stdout:
+                logging.info(f"Output:\n{result.stdout}")
 
-            if error:
-                print("Error:")
-                print(error)
+            if result.stderr:
+                logging.error(f"Error:\n{result.stderr}")
 
     except (OSError, asyncssh.Error) as e:
-        print(f"SSH connection failed: {e}")
+        logging.error(f"SSH connection failed with exit status {e.returncode}: {e.cmd}")
+        logging.error(f"Standard output:\n{e.stdout}")
+        logging.error(f"Standard error:\n{e.stderr}")
+        raise  # Re-raise the exception to let the caller handle it
 
 
 # Function to find attributes for a given host name
