@@ -13,6 +13,9 @@ import logging
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Set asyncssh's logging level to WARNING to suppress lower-level messages
+logging.getLogger('asyncssh').setLevel(logging.WARNING)
+
 tracemalloc.start()
 DOCKER = "podman"
 SSH_PORT = 22
@@ -81,39 +84,98 @@ def mask_sensitive_info(command):
     return masked_command
 
 
+# async def remote_run_with_key(hostname, port, commands):
+#     """Run a command on a remote host with a private key."""
+#     # Read the private key
+#     private_key = await get_ssh_private_key()
+#     # Read the username
+#     username = await get_ssh_username()
+
+#     # for command in commands:
+#     #     # Log the masked command
+#     #     masked_command = mask_sensitive_info(command)
+#     #     logging.info(f"Executing command: {masked_command}")
+
+#     try:
+#         # Connect to the remote server using the SSH key
+#         async with asyncssh.connect(hostname, port=port, username=username,
+#                                     client_keys=[asyncssh.import_private_key(private_key)]) as conn:
+#             # Run the multiline command
+#             result = await conn.run(commands, check=True)
+
+#             # Print the output and error
+#             if result.stdout:
+#                 logging.info(f"Output:\n{result.stdout}")
+
+#             if result.stderr:
+#                 logging.error(f"Error:\n{result.stderr}")
+
+#     except (OSError, asyncssh.Error) as e:
+#         logging.error(f"SSH connection failed with exit status {e.returncode}: {e.cmd}")
+#         logging.error(f"Standard output:\n{e.stdout}")
+#         logging.error(f"Standard error:\n{e.stderr}")
+#         raise  # Re-raise the exception to let the caller handle it
+
 async def remote_run_with_key(hostname, port, commands):
-    """Run a command on a remote host with a private key."""
-    # Read the private key
-    private_key = await get_ssh_private_key()
-    # Read the username
-    username = await get_ssh_username()
-
-    for command in commands:
-        # Log the masked command
-        masked_command = mask_sensitive_info(command)
-        logging.info(f"Executing command: {masked_command}")
-
+    """Run commands on a remote host with a private key."""
     try:
-        # Connect to the remote server using the SSH key
-        async with asyncssh.connect(hostname, port=port, username=username,
-                                    client_keys=[asyncssh.import_private_key(private_key)]) as conn:
-            # Run the multiline command
-            result = await conn.run(commands, check=True)
+        # Read the private key
+        private_key = await get_ssh_private_key()
+        # Read the username
+        username = await get_ssh_username()
 
-            # Print the output and error
-            if result.stdout:
-                logging.info(f"Output:\n{result.stdout}")
+        # Log and execute each command individually if commands are a list
+        if isinstance(commands, list):
+            async with asyncssh.connect(hostname, port=port, username=username,
+                                        client_keys=[asyncssh.import_private_key(private_key)]) as conn:
+                for command in commands:
+                    # Log the masked command
+                    masked_command = mask_sensitive_info(command)
+                    logging.info(f"Executing command: {masked_command}")
+                    
+                    # Execute the command
+                    result = await conn.run(command, check=True)
 
-            if result.stderr:
-                logging.error(f"Error:\n{result.stderr}")
+                    # Print the output and error
+                    if result.stdout:
+                        logging.info(f"Output:\n{result.stdout}")
+                    if result.stderr:
+                        logging.error(f"Error:\n{result.stderr}")
+
+        # If commands are a single string, execute it directly
+        elif isinstance(commands, str):
+            async with asyncssh.connect(hostname, port=port, username=username,
+                                        client_keys=[asyncssh.import_private_key(private_key)]) as conn:
+                # Log the masked command
+                # masked_command = mask_sensitive_info(commands)
+                # logging.info(f"Executing command: {masked_command}")
+                
+                # Execute the command
+                result = await conn.run(commands, check=True)
+
+                # Print the output and error
+                if result.stdout:
+                    logging.info(f"Output:\n{result.stdout}")
+                if result.stderr:
+                    logging.error(f"Error:\n{result.stderr}")
+
+        else:
+            logging.error("Commands should be a list of strings or a single string")
 
     except (OSError, asyncssh.Error) as e:
-        logging.error(f"SSH connection failed with exit status {e.returncode}: {e.cmd}")
-        logging.error(f"Standard output:\n{e.stdout}")
-        logging.error(f"Standard error:\n{e.stderr}")
+        # Log details safely, checking attribute existence
+        logging.error(f"SSH connection failed: {str(e)}")
+        if hasattr(e, 'returncode'):
+            logging.error(f"Exit status: {e.returncode}")
+        if hasattr(e, 'cmd'):
+            logging.error(f"Command: {e.cmd}")
+        if hasattr(e, 'stdout') and e.stdout:
+            logging.error(f"Standard output:\n{e.stdout}")
+        if hasattr(e, 'stderr') and e.stderr:
+            logging.error(f"Standard error:\n{e.stderr}")
         raise  # Re-raise the exception to let the caller handle it
 
-
+        
 # Function to find attributes for a given host name
 def get_host_attributes(yaml_file, host_name):
     """
