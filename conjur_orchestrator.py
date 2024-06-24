@@ -9,6 +9,7 @@ import asyncio
 import asyncssh
 import tracemalloc
 import logging
+import re
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -70,19 +71,24 @@ def mask_sensitive_info(command):
     """
     Masks sensitive information in a command string.
     """
-    # Define patterns for sensitive information
-    sensitive_patterns = [
-        r"--admin-password\s*(\S+)",                  # For passwords after `--admin-password` in commands
-        r"password\s*=\s*['\"]([^'\"]+)['\"]",  # For "password='value'"
-        r"ADMIN_PASSWORD\s*=\s*['\"]([^'\"]+)['\"]", # For "ADMIN_PASSWORD='value'"
+    # Define patterns for various sensitive information
+    patterns = [
+        r'(env\s+ADMIN_PASSWORD=)([^\s]+)',                         # env ADMIN_PASSWORD=value
+        r'(env\s+DB_PASSWORD=)([^\s]+)',                            # env DB_PASSWORD=value
+        r'(export\s+[A-Z_]+PASSWORD=)([^\s]+)',                     # export DB_PASSWORD=value
+        r'(--password\s+)(\S+)',                                    # --password value
+        r'(--secret\s+)(\S+)',                                      # --secret value
+        r'(-pass\s+)(\S+)',                                         # -pass value
+        r'(\b(?:password|passwd|secret|api_key|token)\b\s*=\s*["\']?)([^\s"\'&;]+)', # password=value or password='value'
+        r'(["\'])(password|secret|api_key|token)["\']?\s*=\s*(["\'])([^\3]+)(\3)',    # "password=value" or 'password=value'
     ]
 
     # Replace sensitive parts with masked value
     masked_command = command
-    for pattern in sensitive_patterns:
-        masked_command = re.sub(pattern, r"-p ****", masked_command)
-    return masked_command
+    for pattern in patterns:
+        masked_command = re.sub(pattern, lambda x: f'{x.group(1)}****', masked_command, flags=re.IGNORECASE)
 
+    return masked_command
 
 # async def remote_run_with_key(hostname, port, commands):
 #     """Run a command on a remote host with a private key."""
@@ -147,8 +153,8 @@ async def remote_run_with_key(hostname, port, commands):
             async with asyncssh.connect(hostname, port=port, username=username,
                                         client_keys=[asyncssh.import_private_key(private_key)]) as conn:
                 # Log the masked command
-                # masked_command = mask_sensitive_info(commands)
-                # logging.info(f"Executing command: {masked_command}")
+                masked_command = mask_sensitive_info(commands)
+                logging.info(f"Executing command: {masked_command}")
                 
                 # Execute the command
                 result = await conn.run(commands, check=True)
@@ -567,9 +573,9 @@ python3 -m pip install --user --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 {env_str} python3 conjur_orchestrator.py -o leader -i {yaml_file}
 """
+        print_announcement_banner(f"Deploying leader cluster node: {hostname}")
+        logging.info(f"Deploying leader cluster node: {hostname}")
         try:
-            print_announcement_banner(f"Deploying leader cluster node: {hostname}")
-            logging.info(f"Deploying leader cluster node: {hostname}")
             asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=commands))
         except Exception as e:
             logging.error(f"Failed to deploy leader cluster on hostname {hostname}: {e}")
