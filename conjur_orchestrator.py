@@ -4,6 +4,8 @@ import yaml
 import socket
 import argparse
 import os
+
+import conjur_appliance
 import conjur_appliance as appliance
 import asyncio
 import asyncssh
@@ -67,44 +69,6 @@ async def get_ssh_username():
     return key
 
 
-def mask_sensitive_info(command):
-    """
-    Masks sensitive information in a command string or list of command strings.
-    """
-    # Define patterns for various sensitive information
-    patterns = [
-        r'(env\s+ADMIN_PASSWORD=)([^\s]+)',  # env ADMIN_PASSWORD=value
-        r'(env\s+DB_PASSWORD=)([^\s]+)',  # env DB_PASSWORD=value
-        r'(export\s+[A-Z_]+PASSWORD=)([^\s]+)',  # export DB_PASSWORD=value
-        r'(--password\s+)(\S+)',  # --password value
-        r'(--secret\s+)(\S+)',  # --secret value
-        r'(-pass\s+)(\S+)',  # -pass value
-        r'(\b(?:password|passwd|secret|api_key|token)\b\s*=\s*["\']?)([^\s"\'&;]+)',
-        # password=value or password='value'
-        r'(["\'])(password|secret|api_key|token)["\']?\s*=\s*(["\'])([^\3]+)(\3)',
-        # "password=value" or 'password=value'
-    ]
-
-    def mask_single_command(cmd):
-        """
-        Apply masking to a single command string.
-        """
-        for pattern in patterns:
-            cmd = re.sub(pattern, lambda x: f'{x.group(1)}****', cmd, flags=re.IGNORECASE)
-        return cmd
-
-    if isinstance(command, str):
-        # Mask a single command string
-        return mask_single_command(command)
-
-    elif isinstance(command, list):
-        # Mask each command in the list
-        return [mask_single_command(cmd) for cmd in command]
-
-    else:
-        raise ValueError("Unsupported command type. Expected str or list of str.")
-
-
 async def remote_run_with_key(hostname, port, commands):
     """Run a command on a remote host with a private key."""
     # Read the private key
@@ -113,7 +77,7 @@ async def remote_run_with_key(hostname, port, commands):
     username = await get_ssh_username()
 
     # Log the masked command
-    masked_command = mask_sensitive_info(commands)
+    masked_command = conjur_appliance.mask_sensitive_info(commands)
     logging.info(f"Executing command: {masked_command}")
 
     retry_attempts = 3
@@ -143,7 +107,8 @@ async def remote_run_with_key(hostname, port, commands):
                 logging.error(f"Standard output:\n{e.stdout}")
             if hasattr(e, 'stderr') and e.stderr:
                 logging.error(f"Standard error:\n{e.stderr}")
-            print(f"Attempt {_+1} of {retry_attempts} failed. Retrying ...")
+            print(f"Attempt {_ + 1} of {retry_attempts} failed. Retrying ...")
+
 
 # async def remote_run_with_key(hostname, port, commands):
 #     """Run commands on a remote host with a private key."""
@@ -161,7 +126,7 @@ async def remote_run_with_key(hostname, port, commands):
 #                     # Log the masked command
 #                     masked_command = mask_sensitive_info(command)
 #                     logging.info(f"Executing command: {masked_command}")
-                    
+
 #                     # Execute the command
 #                     result = await conn.run(command, check=True)
 
@@ -178,7 +143,7 @@ async def remote_run_with_key(hostname, port, commands):
 #                 # Log the masked command
 #                 masked_command = mask_sensitive_info(commands)
 #                 logging.info(f"Executing command: {masked_command}")
-                
+
 #                 # Execute the command
 #                 result = await conn.run(commands, check=True)
 
@@ -191,20 +156,20 @@ async def remote_run_with_key(hostname, port, commands):
 #         else:
 #             logging.error("Commands should be a list of strings or a single string")
 
-    # except (OSError, asyncssh.Error) as e:
-    #     # Log details safely, checking attribute existence
-    #     logging.error(f"SSH connection failed: {str(e)}")
-    #     if hasattr(e, 'returncode'):
-    #         logging.error(f"Exit status: {e.returncode}")
-    #     if hasattr(e, 'cmd'):
-    #         logging.error(f"Command: {e.cmd}")
-    #     if hasattr(e, 'stdout') and e.stdout:
-    #         logging.error(f"Standard output:\n{e.stdout}")
-    #     if hasattr(e, 'stderr') and e.stderr:
-    #         logging.error(f"Standard error:\n{e.stderr}")
-    #     raise  # Re-raise the exception to let the caller handle it
+# except (OSError, asyncssh.Error) as e:
+#     # Log details safely, checking attribute existence
+#     logging.error(f"SSH connection failed: {str(e)}")
+#     if hasattr(e, 'returncode'):
+#         logging.error(f"Exit status: {e.returncode}")
+#     if hasattr(e, 'cmd'):
+#         logging.error(f"Command: {e.cmd}")
+#     if hasattr(e, 'stdout') and e.stdout:
+#         logging.error(f"Standard output:\n{e.stdout}")
+#     if hasattr(e, 'stderr') and e.stderr:
+#         logging.error(f"Standard error:\n{e.stderr}")
+#     raise  # Re-raise the exception to let the caller handle it
 
-        
+
 # Function to find attributes for a given host name
 def get_host_attributes(yaml_file, host_name):
     """
@@ -467,7 +432,6 @@ def file_exists(file_path):
         return True
 
 
-
 def leader_deployment_model(yaml_file):
     """
     Deploy the leader or standby cluster based on the host attributes and leader variables.
@@ -524,11 +488,11 @@ def leader_deployment_model(yaml_file):
 
             # check if master key and master cert exit, import certificates
             if file_exists(leader_vars['master_key']) and file_exists(leader_vars['master_cert']):
-                appliance.import_ha_cluster_certificates(host_attributes['name'], leader_vars['master_key'], leader_vars['master_cert'])
+                appliance.import_ha_cluster_certificates(host_attributes['name'], leader_vars['master_key'],
+                                                         leader_vars['master_cert'])
 
             # restart conjur services
             appliance.restart_conjur_services(host_attributes['name'])
-
 
     # check if deploying sync standby node
     if host_attributes['type'] == 'standby':
@@ -671,7 +635,7 @@ def deploy_follower_model(yaml_file):
     except Exception as e:
         logging.error(f"Failed to read follower hostnames from {yaml_file}: {e}")
         return
-    
+
     for hostname in hostnames['followers']:
         try:
             host_attributes = get_host_attributes(yaml_file, hostname)

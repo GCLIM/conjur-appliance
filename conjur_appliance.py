@@ -4,6 +4,7 @@ import subprocess
 import os
 from typing import Dict, Any
 import logging
+import re
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -131,6 +132,43 @@ def disable_service(service_name):
 #     result.check_returncode()  # This will raise CalledProcessError if the command failed
 #     return result
 
+def mask_sensitive_info(command):
+    """
+    Masks sensitive information in a command string or list of command strings.
+    """
+    # Define patterns for various sensitive information
+    patterns = [
+        r'(env\s+ADMIN_PASSWORD=)([^\s]+)',  # env ADMIN_PASSWORD=value
+        r'(env\s+DB_PASSWORD=)([^\s]+)',  # env DB_PASSWORD=value
+        r'(export\s+[A-Z_]+PASSWORD=)([^\s]+)',  # export DB_PASSWORD=value
+        r'(--password\s+)(\S+)',  # --password value
+        r'(--secret\s+)(\S+)',  # --secret value
+        r'(-pass\s+)(\S+)',  # -pass value
+        r'(\b(?:password|passwd|secret|api_key|token)\b\s*=\s*["\']?)([^\s"\'&;]+)',
+        # password=value or password='value'
+        r'(["\'])(password|secret|api_key|token)["\']?\s*=\s*(["\'])([^\3]+)(\3)',
+        # "password=value" or 'password=value'
+    ]
+
+    def mask_single_command(cmd):
+        """
+        Apply masking to a single command string.
+        """
+        for pattern in patterns:
+            cmd = re.sub(pattern, lambda x: f'{x.group(1)}****', cmd, flags=re.IGNORECASE)
+        return cmd
+
+    if isinstance(command, str):
+        # Mask a single command string
+        return mask_single_command(command)
+
+    elif isinstance(command, list):
+        # Mask each command in the list
+        return [mask_single_command(cmd) for cmd in command]
+
+    else:
+        raise ValueError("Unsupported command type. Expected str or list of str.")
+
 
 def run_subprocess(command, shell=False):
     """
@@ -143,15 +181,22 @@ def run_subprocess(command, shell=False):
     Returns:
         CompletedProcess: The result of the subprocess.run call.
     """
-    logging.info(f"Running command: {' '.join(command) if isinstance(command, list) else command}")
+    masked_command = mask_sensitive_info(command)
+    logging.info(f"Running command: {' '.join(masked_command) if isinstance(masked_command, list) else masked_command}")
     try:
         result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True)
         if result.stdout:
             logging.info(f"Output:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Command failed with exit status {e.returncode}: {e.cmd}")
-        logging.error(f"Standard output:\n{e.stdout}")
-        logging.error(f"Standard error:\n{e.stderr}")   
+        logging.error(f"Error: {e}")
+        if hasattr(e, 'returncode'):
+            logging.error(f"Exit status: {e.returncode}")
+        if hasattr(e, 'cmd'):
+            logging.error(f"Command: {e.cmd}")
+        if hasattr(e, 'stdout') and e.stdout:
+            logging.error(f"Standard output:\n{e.stdout}")
+        if hasattr(e, 'stderr') and e.stderr:
+            logging.error(f"Standard error:\n{e.stderr}")
         raise  # Re-raise the exception to let the caller handle it
 
     return result
