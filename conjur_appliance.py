@@ -141,7 +141,7 @@ def mask_sensitive_info(command):
         r'(env\s+ADMIN_PASSWORD=)([^\s]+)',  # env ADMIN_PASSWORD=value
         r'(env\s+DB_PASSWORD=)([^\s]+)',  # env DB_PASSWORD=value
         r'(export\s+[A-Z_]+PASSWORD=)([^\s]+)',  # export DB_PASSWORD=value
-        r'(--password\s+)(\S+)',  # --password value
+        r'(--admin-password\s+)(\S+)',  # --admin-password value
         r'(--secret\s+)(\S+)',  # --secret value
         r'(-pass\s+)(\S+)',  # -pass value
         r'(\b(?:password|passwd|secret|api_key|token)\b\s*=\s*["\']?)([^\s"\'&;]+)',
