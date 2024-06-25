@@ -867,7 +867,6 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--orchestrator", type=str, help="leader: orchestrator leader cluster deployment")
     parser.add_argument("-r", "--retire", type=str, help="leader: retire leader cluster\nfollower: retire followers")
     parser.add_argument("-i", "--inventory", type=str, help="eg. inventories/dev.yml")
-    parser.add_argument("-h", "--help", action="help", help="show this help message and exit")
     parser.add_argument("-s", "--status", type=str, help="leader: check leader cluster status\nfollower: check followers status")
     args = parser.parse_args()
 
