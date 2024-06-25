@@ -834,21 +834,7 @@ def print_health_report(health_report):
     print(f"  - Status: {health_report['selective_replication']['status']}")
     print(f"  - Degraded: {'Yes' if health_report['selective_replication']['degraded'] else 'No'}")
 
-
-Certainly! To
-use
-curl
-for fetching the health data and analyzing the response in Python, we can leverage the subprocess module.This module allows us to run shell commands, like curl, directly from Python.
-
-Here
-'s how you can modify the script to use curl instead of the requests library:
-
-python
-Copy
-code
-import subprocess
-import json
-
+    print("\n")
 
 def check_health(json_data):
     """
