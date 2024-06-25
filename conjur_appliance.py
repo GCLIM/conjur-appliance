@@ -933,6 +933,6 @@ if __name__ == "__main__":
 
     if args.model == "health":
         # URL to fetch the health data from
-        health_check_url = "localhost:444/health"
+        health_check_url = "http://localhost:444/health"
         # Fetch and analyze the health data
         fetch_and_analyze_health(health_check_url)
