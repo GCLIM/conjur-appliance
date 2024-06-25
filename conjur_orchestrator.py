@@ -116,27 +116,34 @@ async def remote_run_with_key(hostname, port, commands):
     masked_command = mask_sensitive_info(commands)
     logging.info(f"Executing command: {masked_command}")
 
-    try:
-        # Connect to the remote server using the SSH key
-        async with asyncssh.connect(hostname, port=port, username=username,
-                                    client_keys=[asyncssh.import_private_key(private_key)]) as conn:
-            # Run the multiline command
-            result = await conn.run(commands, check=True)
+    retry_attempts = 3
+    for _ in range(retry_attempts):
+        try:
+            # Connect to the remote server using the SSH key
+            async with asyncssh.connect(hostname, port=port, username=username,
+                                        client_keys=[asyncssh.import_private_key(private_key)]) as conn:
+                # Run the multiline command
+                result = await conn.run(commands, check=True)
 
-            # Print the output and error
-            if result.stdout:
-                logging.info(f"Output:\n{result.stdout}")
+                # Print the output and error
+                if result.stdout:
+                    logging.info(f"Output:\n{result.stdout}")
 
-            if result.stderr:
-                logging.error(f"Error:\n{result.stderr}")
+                if result.stderr:
+                    logging.error(f"Error:\n{result.stderr}")
+            break
 
-    except (OSError, asyncssh.Error) as e:
-        logging.error(f"SSH connection failed with exit status {e.returncode}: {e.cmd}")
-        if hasattr(e, 'stdout') and e.stdout:
-            logging.error(f"Standard output:\n{e.stdout}")
-        if hasattr(e, 'stderr') and e.stderr:
-            logging.error(f"Standard error:\n{e.stderr}")
-        raise  # Re-raise the exception to let the caller handle it
+        except (OSError, asyncssh.Error) as e:
+            logging.error(f"SSH connection failed: {str(e)}")
+            if hasattr(e, 'returncode'):
+                logging.error(f"Exit status: {e.returncode}")
+            if hasattr(e, 'cmd'):
+                logging.error(f"Command: {e.cmd}")
+            if hasattr(e, 'stdout') and e.stdout:
+                logging.error(f"Standard output:\n{e.stdout}")
+            if hasattr(e, 'stderr') and e.stderr:
+                logging.error(f"Standard error:\n{e.stderr}")
+            print(f"Attempt {_+1} of {retry_attempts} failed. Retrying ...")
 
 # async def remote_run_with_key(hostname, port, commands):
 #     """Run commands on a remote host with a private key."""
