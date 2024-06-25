@@ -69,26 +69,41 @@ async def get_ssh_username():
 
 def mask_sensitive_info(command):
     """
-    Masks sensitive information in a command string.
+    Masks sensitive information in a command string or list of command strings.
     """
     # Define patterns for various sensitive information
     patterns = [
-        r'(env\s+ADMIN_PASSWORD=)([^\s]+)',                         # env ADMIN_PASSWORD=value
-        r'(env\s+DB_PASSWORD=)([^\s]+)',                            # env DB_PASSWORD=value
-        r'(export\s+[A-Z_]+PASSWORD=)([^\s]+)',                     # export DB_PASSWORD=value
-        r'(--password\s+)(\S+)',                                    # --password value
-        r'(--secret\s+)(\S+)',                                      # --secret value
-        r'(-pass\s+)(\S+)',                                         # -pass value
-        r'(\b(?:password|passwd|secret|api_key|token)\b\s*=\s*["\']?)([^\s"\'&;]+)', # password=value or password='value'
-        r'(["\'])(password|secret|api_key|token)["\']?\s*=\s*(["\'])([^\3]+)(\3)',    # "password=value" or 'password=value'
+        r'(env\s+ADMIN_PASSWORD=)([^\s]+)',  # env ADMIN_PASSWORD=value
+        r'(env\s+DB_PASSWORD=)([^\s]+)',  # env DB_PASSWORD=value
+        r'(export\s+[A-Z_]+PASSWORD=)([^\s]+)',  # export DB_PASSWORD=value
+        r'(--password\s+)(\S+)',  # --password value
+        r'(--secret\s+)(\S+)',  # --secret value
+        r'(-pass\s+)(\S+)',  # -pass value
+        r'(\b(?:password|passwd|secret|api_key|token)\b\s*=\s*["\']?)([^\s"\'&;]+)',
+        # password=value or password='value'
+        r'(["\'])(password|secret|api_key|token)["\']?\s*=\s*(["\'])([^\3]+)(\3)',
+        # "password=value" or 'password=value'
     ]
 
-    # Replace sensitive parts with masked value
-    masked_command = command
-    for pattern in patterns:
-        masked_command = re.sub(pattern, lambda x: f'{x.group(1)}****', masked_command, flags=re.IGNORECASE)
+    def mask_single_command(cmd):
+        """
+        Apply masking to a single command string.
+        """
+        for pattern in patterns:
+            cmd = re.sub(pattern, lambda x: f'{x.group(1)}****', cmd, flags=re.IGNORECASE)
+        return cmd
 
-    return masked_command
+    if isinstance(command, str):
+        # Mask a single command string
+        return mask_single_command(command)
+
+    elif isinstance(command, list):
+        # Mask each command in the list
+        return [mask_single_command(cmd) for cmd in command]
+
+    else:
+        raise ValueError("Unsupported command type. Expected str or list of str.")
+
 
 async def remote_run_with_key(hostname, port, commands):
     """Run a command on a remote host with a private key."""
@@ -117,8 +132,10 @@ async def remote_run_with_key(hostname, port, commands):
 
     except (OSError, asyncssh.Error) as e:
         logging.error(f"SSH connection failed with exit status {e.returncode}: {e.cmd}")
-        logging.error(f"Standard output:\n{e.stdout}")
-        logging.error(f"Standard error:\n{e.stderr}")
+        if hasattr(e, 'stdout') and e.stdout:
+            logging.error(f"Standard output:\n{e.stdout}")
+        if hasattr(e, 'stderr') and e.stderr:
+            logging.error(f"Standard error:\n{e.stderr}")
         raise  # Re-raise the exception to let the caller handle it
 
 # async def remote_run_with_key(hostname, port, commands):
@@ -167,18 +184,18 @@ async def remote_run_with_key(hostname, port, commands):
 #         else:
 #             logging.error("Commands should be a list of strings or a single string")
 
-    except (OSError, asyncssh.Error) as e:
-        # Log details safely, checking attribute existence
-        logging.error(f"SSH connection failed: {str(e)}")
-        if hasattr(e, 'returncode'):
-            logging.error(f"Exit status: {e.returncode}")
-        if hasattr(e, 'cmd'):
-            logging.error(f"Command: {e.cmd}")
-        if hasattr(e, 'stdout') and e.stdout:
-            logging.error(f"Standard output:\n{e.stdout}")
-        if hasattr(e, 'stderr') and e.stderr:
-            logging.error(f"Standard error:\n{e.stderr}")
-        raise  # Re-raise the exception to let the caller handle it
+    # except (OSError, asyncssh.Error) as e:
+    #     # Log details safely, checking attribute existence
+    #     logging.error(f"SSH connection failed: {str(e)}")
+    #     if hasattr(e, 'returncode'):
+    #         logging.error(f"Exit status: {e.returncode}")
+    #     if hasattr(e, 'cmd'):
+    #         logging.error(f"Command: {e.cmd}")
+    #     if hasattr(e, 'stdout') and e.stdout:
+    #         logging.error(f"Standard output:\n{e.stdout}")
+    #     if hasattr(e, 'stderr') and e.stderr:
+    #         logging.error(f"Standard error:\n{e.stderr}")
+    #     raise  # Re-raise the exception to let the caller handle it
 
         
 # Function to find attributes for a given host name
@@ -590,20 +607,26 @@ if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
             logging.error(f"Failed to look up hostname {hostname}: {e}")
             continue  # Skip this hostname and proceed with the next one
         if host_attributes['type'] == 'standby':
-            logging.info(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
             print_announcement_banner(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
+            logging.info(f"Step 0: Create and unpack the standby seed files")
+            # Create and unpack seed files
+            print("Standby node name:", hostname)
+            logging.info(f"Configuring standby node: {hostname} with container: {host_attributes['name']}")
             print("Standby node name:", hostname)
             print("Standby container name:", host_attributes['name'])
             logging.info(f"Step 1: Create and unpack the Standby seed files")
             try:
                 asyncio.run(seed_and_unpack(leader_hostname, leader_container_name, hostname, host_attributes['name']))
+            except Exception as e:
+                logging.error(f"Failed to configure standby node {hostname}: {e}")
+                continue  # Skip this hostname and proceed with the next one
 
-                logging.info(f"Step 2: Configure the Standby")
-                # Configure standby node using unencrypted master key
-                configure_standby_command = f"{DOCKER} exec {host_attributes['name']} evoke configure standby"
-                if asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=configure_standby_command)) == 0:
-                    logging.info(f"Standby node {hostname} configured.")
-
+            # Configure standby node using unencrypted master key
+            logging.info(f"Step 2: Configure the Standby")
+            configure_standby_command = f"{DOCKER} exec {host_attributes['name']} evoke configure standby"
+            try:
+                asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=configure_standby_command))
+                logging.info(f"Standby node {hostname} configured.")
             except Exception as e:
                 logging.error(f"Failed to configure standby node {hostname}: {e}")
                 continue  # Skip this hostname and proceed with the next one
