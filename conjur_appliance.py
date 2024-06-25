@@ -835,14 +835,130 @@ def print_health_report(health_report):
     print(f"  - Degraded: {'Yes' if health_report['selective_replication']['degraded'] else 'No'}")
 
 
+Certainly! To
+use
+curl
+for fetching the health data and analyzing the response in Python, we can leverage the subprocess module.This module allows us to run shell commands, like curl, directly from Python.
+
+Here
+'s how you can modify the script to use curl instead of the requests library:
+
+python
+Copy
+code
+import subprocess
+import json
+
+
+def check_health(json_data):
+    """
+    Check the health status based on the given JSON data.
+    """
+    # Extract the overall status
+    overall_status = json_data.get("ok", False)
+    degraded_status = json_data.get("degraded", False)
+    role = json_data.get("role", "unknown")
+
+    # Check services status
+    services_status = json_data.get("services", {})
+    services_report = []
+    for service, status in services_status.items():
+        if service == "ok":
+            continue  # Skip the overall 'ok' key in services
+        services_report.append(f"Service '{service}': {'OK' if status == 'ok' else 'Status: ' + status}")
+
+    # Check database status
+    database_status = json_data.get("database", {}).get("ok", False)
+    db_free_space = json_data.get("database", {}).get("free_space", {}).get("main", {}).get("kbytes", 0)
+
+    # Check replication status
+    replication_status = json_data.get("database", {}).get("replication_status", {})
+    replication_report = []
+    for replica in replication_status.get("pg_stat_replication", []):
+        replication_report.append(
+            f"Replica '{replica['application_name']}': "
+            f"State={replica['state']}, "
+            f"Sync State={replica['sync_state']}, "
+            f"Replication Lag={replica['replication_lag_bytes']} bytes"
+        )
+
+    # Check audit status
+    audit_status = json_data.get("audit", {}).get("ok", False)
+    audit_processed = json_data.get("audit", {}).get("received", {}).get("processed", 0)
+
+    # Check local authentication status
+    local_auth_status = json_data.get("local_authentication", {}).get("ok", False)
+
+    # Check selective replication status
+    selective_rep_status = json_data.get("selective_replication", {}).get("ok", False)
+    selective_rep_degraded = json_data.get("selective_replication", {}).get("degraded", False)
+
+    # Prepare the health report
+    health_report = {
+        "overall_status": "OK" if overall_status and not degraded_status else "DEGRADED" if degraded_status else "NOT OK",
+        "role": role,
+        "services": services_report,
+        "database": {
+            "status": "OK" if database_status else "NOT OK",
+            "free_space_kbytes": db_free_space,
+            "replication": replication_report
+        },
+        "audit": {
+            "status": "OK" if audit_status else "NOT OK",
+            "processed_events": audit_processed
+        },
+        "local_authentication": "OK" if local_auth_status else "NOT OK",
+        "selective_replication": {
+            "status": "OK" if selective_rep_status else "NOT OK",
+            "degraded": selective_rep_degraded
+        }
+    }
+
+    return health_report
+
+
+def print_health_report(health_report):
+    """
+    Print the health report in a readable format.
+    """
+    print("Health Check Summary:")
+    print(f"Overall Status: {health_report['overall_status']}")
+    print(f"Role: {health_report['role']}")
+    print("\nServices Status:")
+    for service_status in health_report['services']:
+        print(f"  - {service_status}")
+    print("\nDatabase Status:")
+    print(f"  - Status: {health_report['database']['status']}")
+    print(f"  - Free Space (kbytes): {health_report['database']['free_space_kbytes']}")
+    print("\n  Replication Status:")
+    for replica_status in health_report['database']['replication']:
+        print(f"    - {replica_status}")
+    print("\nAudit Status:")
+    print(f"  - Status: {health_report['audit']['status']}")
+    print(f"  - Processed Events: {health_report['audit']['processed_events']}")
+    print("\nLocal Authentication Status:")
+    print(f"  - Status: {health_report['local_authentication']}")
+    print("\nSelective Replication Status:")
+    print(f"  - Status: {health_report['selective_replication']['status']}")
+    print(f"  - Degraded: {'Yes' if health_report['selective_replication']['degraded'] else 'No'}")
+
+
 def fetch_and_analyze_health(url):
     """
-    Fetch the health data from the given URL and analyze it.
+    Fetch the health data from the given URL using curl and analyze it.
     """
     try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an HTTPError if the HTTP request returned an unsuccessful status code
-        json_data = response.json()
+        # Use curl to fetch the JSON data
+        curl_command = f"curl -s {url}"
+        result = run_subprocess(curl_command, shell=False)
+
+        # Check if curl executed successfully
+        if result.returncode != 0:
+            print(f"Failed to fetch health data: {result.stderr}")
+            return
+
+        # Parse the JSON response
+        json_data = json.loads(result.stdout)
 
         # Perform the health check
         health_report = check_health(json_data)
@@ -850,8 +966,6 @@ def fetch_and_analyze_health(url):
         # Print the health report
         print_health_report(health_report)
 
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to fetch health data: {e}")
     except json.JSONDecodeError as e:
         print(f"Failed to decode JSON data: {e}")
 
