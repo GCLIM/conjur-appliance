@@ -936,7 +936,7 @@ def fetch_and_analyze_health(url):
     try:
         # Use curl to fetch the JSON data
         curl_command = f"curl -s {url}"
-        result = run_subprocess(curl_command, shell=False)
+        result = run_subprocess(curl_command, shell=True)
 
         # Check if curl executed successfully
         if result.returncode != 0:
