@@ -10,7 +10,6 @@ import asyncio
 import asyncssh
 import tracemalloc
 import logging
-import requests
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')

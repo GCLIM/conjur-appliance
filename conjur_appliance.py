@@ -5,7 +5,7 @@ import os
 from typing import Dict, Any
 import logging
 import re
-
+import requests
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
