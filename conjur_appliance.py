@@ -935,4 +935,4 @@ if __name__ == "__main__":
         # URL to fetch the health data from
         health_check_url = "localhost:444/health"
         # Fetch and analyze the health data
-        conjur_appliance.fetch_and_analyze_health(health_check_url)
+        fetch_and_analyze_health(health_check_url)
