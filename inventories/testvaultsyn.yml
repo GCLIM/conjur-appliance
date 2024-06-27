@@ -1,0 +1,10 @@
+vaultsyn:
+    hosts:
+        vaultsyn.gcloud101.com:
+            ansible_host: 192.168.11.68
+            ansible_user: Administrator
+            ansible_password: TEST
+            ansible_connection: winrm
+            ansible_winrm_server_cert_validation: ignore
+            
+#windows_host ansible_host=192.168.1.100 ansible_user=Administrator ansible_password=YourPassword ansible_connection=winrm ansible_winrm_server_cert_validation=ignore

@@ -47,3 +47,14 @@ followers:
     load_balancer_dns: conjur-dev.gcloud101.com
     follower_key: /home/gclim/cyberark/dap/certificates/conjur-dev-follower-key.pem
     follower_cert: /home/gclim/cyberark/dap/certificates/conjur-dev-follower-cert.pem
+
+vaultsyn:
+    hosts:
+        vaultsyn.gcloud101.com:
+            ansible_host: 192.168.1.100
+            ansible_user: Administrator
+            ansible_password: YourPassword
+            ansible_connection: winrm
+            ansible_winrm_server_cert_validation: ignore
+
+#windows_host ansible_host=192.168.1.100 ansible_user=Administrator ansible_password=YourPassword ansible_connection=winrm ansible_winrm_server_cert_validation=ignore
