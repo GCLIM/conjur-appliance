@@ -1,7 +1,10 @@
----
 - name: Check PowerShell version
   hosts: vaultsyn
   tasks:
+    - name: Set admin_password variable from environment ADMIN_PASSWORD variable
+      set_fact:
+        admin_password: "{{ lookup('env', 'ADMIN_PASSWORD') }}"
+
     - name: Retrieve PowerShell version
       win_shell: $PSVersionTable.PSVersion
       register: ps_version
