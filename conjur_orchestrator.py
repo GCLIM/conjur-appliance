@@ -91,7 +91,9 @@ async def remote_run_with_key(hostname, port, commands):
                 if result.stdout:
                     logging.info(f"Output:\n{result.stdout}")
 
-                if result.stderr:
+                if result.returncode == 0:
+                    logging.info(f"Output:\n{result.stderr}")
+                else:
                     logging.error(f"Error:\n{result.stderr}")
             break
 
@@ -100,7 +102,8 @@ async def remote_run_with_key(hostname, port, commands):
             if hasattr(e, 'returncode'):
                 logging.error(f"Exit status: {e.returncode}")
             if hasattr(e, 'cmd'):
-                logging.error(f"Command: {e.cmd}")
+                masked_cmd = conjur_appliance.mask_sensitive_info(e.cmd)
+                logging.error(f"Command: {masked_cmd}")
             if hasattr(e, 'stdout') and e.stdout:
                 logging.error(f"Standard output:\n{e.stdout}")
             if hasattr(e, 'stderr') and e.stderr:
