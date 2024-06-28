@@ -12,3 +12,4 @@
     - name: Display PowerShell version
       debug:
         msg: "PowerShell version is {{ ps_version.stdout }}"
+

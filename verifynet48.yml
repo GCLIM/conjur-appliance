@@ -1,0 +1,25 @@
+---
+- name: Verify .NET Framework 4.8 Installation
+  hosts: vaultsyn
+  tasks:
+    - name: Check .NET Framework 4.8 Release Key in Registry
+      ansible.builtin.win_reg_stat:
+        path: HKLM\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full
+        name: Release
+      register: dotnet_reg
+
+    - name: Validate .NET Framework 4.8 Installation
+      ansible.builtin.win_shell: |
+        $ReleaseValue = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" -Name Release | Select-Object -ExpandProperty Release
+        if ($ReleaseValue -ge 528040) {
+          Write-Output "Installed"
+        } else {
+          Write-Output "Not Installed"
+        }
+      register: dotnet_check
+      when: dotnet_reg.found
+
+    - name: Display .NET Framework 4.8 Installation Status
+      debug:
+        msg: ".NET Framework 4.8 is {{ 'Installed' if dotnet_check.stdout.find('Installed') != -1 else 'Not Installed' }}"
+
