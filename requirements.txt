@@ -1,4 +1,6 @@
 PyYAML~=6.0.1
-asyncio
-asyncssh
-requests
+asyncio~=3.4.3
+asyncssh~=2.14.2
+requests~=2.32.3
+pywinrm~=0.4.3
+hvac
