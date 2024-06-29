@@ -75,51 +75,53 @@ def get_value_from_vault(key):
     return value
 
 
-def get_admin_password():
-    """Fetch ADMIN_PASSWORD from environment variables."""
-    key = os.getenv('ADMIN_PASSWORD')
-    if not key:
-        raise ValueError("ADMIN_PASSWORD environment variable not set.")
-    return key
+# def get_admin_password():
+#     """Fetch ADMIN_PASSWORD from environment variables."""
+#     key = os.getenv('ADMIN_PASSWORD')
+#     if not key:
+#         raise ValueError("ADMIN_PASSWORD environment variable not set.")
+#     return key
 
 
-async def get_ssh_private_key():
-    """Fetch the SSH private key from environment variables."""
-    key = os.getenv('SSH_PRIVATE_KEY')
-    if not key:
-        raise ValueError("SSH_PRIVATE_KEY environment variable not set.")
-    return key
+# async def get_ssh_private_key():
+#     """Fetch the SSH private key from environment variables."""
+#     key = os.getenv('SSH_PRIVATE_KEY')
+#     if not key:
+#         raise ValueError("SSH_PRIVATE_KEY environment variable not set.")
+#     return key
 
 
-async def get_ssh_username():
-    """Fetch the SSH_USERNAME from environment variables."""
-    key = os.getenv('SSH_USERNAME')
-    if not key:
-        raise ValueError("SSH_USERNAME environment variable not set.")
-    return key
+# async def get_ssh_username():
+#     """Fetch the SSH_USERNAME from environment variables."""
+#     key = os.getenv('SSH_USERNAME')
+#     if not key:
+#         raise ValueError("SSH_USERNAME environment variable not set.")
+#     return key
 
-def get_winrm_username():
-    """Fetch the WINRM_USERNAME from environment variables."""
-    key = os.getenv('WINRM_USERNAME')
-    if not key:
-        raise ValueError("WINRM_USERNAME environment variable not set.")
-    return key
+# def get_winrm_username():
+#     """Fetch the WINRM_USERNAME from environment variables."""
+#     key = os.getenv('WINRM_USERNAME')
+#     if not key:
+#         raise ValueError("WINRM_USERNAME environment variable not set.")
+#     return key
 
 
-def get_winrm_password():
-    """Fetch the WINRM_PASSWORD from environment variables."""
-    key = os.getenv('WINRM_PASSWORD')
-    if not key:
-        raise ValueError("WINRM_PASSWORD environment variable not set.")
-    return key
+# def get_winrm_password():
+#     """Fetch the WINRM_PASSWORD from environment variables."""
+#     key = os.getenv('WINRM_PASSWORD')
+#     if not key:
+#         raise ValueError("WINRM_PASSWORD environment variable not set.")
+#     return key
 
 
 async def remote_run_with_key(hostname, port, commands):
     """Run a command on a remote host with a private key."""
     # Read the private key
-    private_key = await get_ssh_private_key()
-    # Read the username
-    username = await get_ssh_username()
+    # private_key = await get_ssh_private_key()
+    # # Read the username
+    # username = await get_ssh_username()
+    private_key = get_value_from_vault('SSH_KEY')
+    username = get_value_from_vault('SSH_USERNAME')
 
     # Log the masked command
     masked_command = conjur_appliance.mask_sensitive_info(commands)
@@ -459,11 +461,14 @@ async def seed_and_unpack(leader_hostname, leader_container_name, standby_hostna
     """
     try:
         # Read username
-        username = await get_ssh_username()
+        # username = await get_ssh_username()
+        username = get_value_from_vault('SSH_USERNAME')
 
         # Read the private keys
-        dap_private_key = await get_ssh_private_key()
-        standby_private_key = await get_ssh_private_key()
+        # dap_private_key = await get_ssh_private_key()
+        # standby_private_key = await get_ssh_private_key()
+        dap_private_key = get_value_from_vault('SSH_KEY')
+        standby_private_key = get_value_from_vault('SSH_KEY')
 
         # Connect to the first server and run the seed command
         async with asyncssh.connect(leader_hostname, port=SSH_PORT, username=username,
@@ -556,7 +561,7 @@ def leader_deployment_model(yaml_file):
         leader_altnames = ",".join(all_hostnames)
 
         logging.info(f"Leader cluster nodes: {leader_altnames}")
-        admin_password = get_admin_password()
+        admin_password = get_value_from_vault('CONJUR_ADMIN_PASSWORD')
 
         configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_dns']} --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
 
@@ -632,7 +637,7 @@ def deploy_leader_cluster_model(yaml_file):
             if host_attributes['type'] == 'leader':
                 leader_node_name = hostname
                 leader_container_name = host_attributes['name']
-                admin_password = get_admin_password()
+                admin_password = get_value_from_vault('CONJUR_ADMIN_PASSWORD')
                 env_vars = f'ADMIN_PASSWORD={admin_password}'
                 env_str = f"env {env_vars} "
         except Exception as e:
@@ -840,7 +845,7 @@ def winrm_remote_shell_ps_script(hostname, ps_script):
 
     # get winrm username
     # username = get_winrm_username()
-    username =get_value_from_vault("WINRM_USERNAME")
+    username = get_value_from_vault("WINRM_USERNAME")
 
     # get winrm password
     # password = get_winrm_password()
