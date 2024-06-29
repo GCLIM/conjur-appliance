@@ -141,6 +141,8 @@ def mask_sensitive_info(command):
     patterns = [
         r'(env\s+ADMIN_PASSWORD=)([^\s]+)',  # env ADMIN_PASSWORD=value
         r'(env\s+DB_PASSWORD=)([^\s]+)',  # env DB_PASSWORD=value
+        r'(\$conjur_admin_password\s+=\s+)([^\s]+)',  # $conjur_admin_password = value
+        r'(\$vault_admin_password\s+=\s+)([^\s]+)',  # $vault_admin_password = value
         r'(export\s+[A-Z_]+PASSWORD=)([^\s]+)',  # export DB_PASSWORD=value
         r'(--admin-password\s+)(\S+)',  # --admin-password value
         r'(--secret\s+)(\S+)',  # --secret value

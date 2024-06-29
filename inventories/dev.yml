@@ -48,13 +48,46 @@ followers:
     follower_key: /home/gclim/cyberark/dap/certificates/conjur-dev-follower-key.pem
     follower_cert: /home/gclim/cyberark/dap/certificates/conjur-dev-follower-cert.pem
 
-vaultsyn:
+vaultsyncs:
     hosts:
         vaultsyn.gcloud101.com:
             ansible_host: 192.168.1.100
-            ansible_user: Administrator
-            ansible_password: YourPassword
             ansible_connection: winrm
             ansible_winrm_server_cert_validation: ignore
-
-#windows_host ansible_host=192.168.1.100 ansible_user=Administrator ansible_password=YourPassword ansible_connection=winrm ansible_winrm_server_cert_validation=ignore
+    vars:
+        ansible_user: Administrator
+        ansible_password: MySecretP@ss1
+        Sync_Package_Directory: C:\\Users\\Administrator\\Downloads\\VaultConjurSynchronizer\\Installation
+        ## specify the values for installation method using silent.ini
+        # Specify the target installation path for the Vault Synchronizer
+        InstallationTargetPath: C:\Program Files\CyberArk\Synchronizer
+        # Specify the URL of the PVWA, starting with https:// and excluding the full path
+        PVWAURL: https://passwordvault.gcloud101.com
+        # Specify Vault address. If the Vault has multiple addresses, list them separated by commas and without spaces
+        VaultAddress: 192.168.11.69
+        # Specify Vault port (default=1858)
+        VaultPort: 1858
+        # Specify Vault name (alias)
+        VaultName: vaultdev
+        # Specify the name of the Safe for storing accounts used to manage this Synchronizer
+        SyncSafeName: SyncSafeDev
+        # Enter the Conjur Enterprise hostname and port (port is optional) in the format of https://hostname[:port]
+        # Enter the Conjur Cloud API URL that you copied from the Conjur Cloud UI
+        ConjurServerDNS: https://conjur01.gcloud101.com
+        # Specify Conjur Enterprise account name
+        # For Conjur Cloud, this parameter is always set to 'conjur'
+        ConjurAccount: conjur_account
+        # Specify the full path to the Conjur admin credentials file, created before the installation (only for PAS earlier than v11.4)
+        ConjurCredentialsFilePath: NA
+        # Specify LOB name (only for PAS v11.4 and later / Privilege Cloud)
+        LOBName: LOB_VaultSync
+        # Specify 'CyberArk Vault' platform used by the LOB account (only for PAS v11.4 and later / Privilege Cloud)
+        LOBPlatform: CyberArk Vault
+        # Specify if Synchronizer is running in multi-node mode (set false for Conjur Cloud integration!)
+        MultiNodeEnabled: false
+        # Specify Cluster key (keep empty for Conjur Cloud integration!)
+        ClusterKey: vaultsyncdev
+        # Are you installing the Vault Synchronizer for Conjur Cloud (enter true/false)?
+        ConjurCloudSelected: false
+        # Enter the Vault Synchronizer credentials that you copied from the Conjur Cloud UI
+        ConjurCloudHostAndToken: NA
