@@ -912,7 +912,7 @@ def check_dotnet_framework_48(hostname):
     return winrm_remote_shell_ps_script(hostname, ps_script)
 
 
-def remote_write_silent_init_file(yaml_file, hostname):
+def remote_write_silent_ini_file(yaml_file, hostname):
     # get vault syncs vars
     vaultsyncs_vars = get_vars('vaultsyncs', yaml_file)
     # PowerShell command script to create the silent.ini file
@@ -1056,7 +1056,7 @@ def deploy_vaultsync_model(yaml_file):
             logging.info(".Net Framework 4.8 is installed.")
             logging.info("Precheck...Passed")
             logging.info("Write Silent.ini for Vault Synchronizer...")
-            result = remote_write_silent_init_file(yaml_file, hostname)
+            result = remote_write_silent_ini_file(yaml_file, hostname)
             # print(result)
             logging.info("Install Vault Synchronizer...")
             result = remote_install_vault_synchronizer(yaml_file, hostname)
