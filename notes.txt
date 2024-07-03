@@ -92,3 +92,13 @@ docker exec leadernode evoke ca import \
 # restart conjur services
 podman exec leadernode sv restart conjur nginx pg seed
 
+
+
+enable FIPS
+===========
+# Open PowerShell with administrative privileges
+# Set the registry key to enable FIPS mode
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy" -Name "Enabled" -Value 1
+
+# Restart the server to apply changes
+Restart-Computer -Force
