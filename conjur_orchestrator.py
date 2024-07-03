@@ -1044,7 +1044,7 @@ cd {vaultsyncs_vars['Sync_Package_Directory']}
     return result
 
 
-def prcheck_vault_synchronizer(hostname):
+def precheck_vault_synchronizer(hostname):
 
     result = "PASSED"
 
@@ -1081,7 +1081,7 @@ def deploy_vaultsync_model(yaml_file):
     for hostname in hostnames['vaultsyncs']:
         print_announcement_banner(f"Deploying Vault Synchronizer on {hostname}")
         logging.info("Precheck...")
-        result = prcheck_vault_synchronizer()
+        result = precheck_vault_synchronizer(hostname)
         if result == "PASSED":
             logging.info("Precheck...Passed")
             logging.info("Write Silent.ini for Vault Synchronizer...")
