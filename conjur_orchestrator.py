@@ -1,5 +1,4 @@
 import subprocess
-
 import yaml
 import socket
 import argparse
@@ -12,6 +11,7 @@ import tracemalloc
 import logging
 import winrm
 import hvac
+import re
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -933,19 +933,16 @@ def check_ms_visual_c_2022_x86(hostname):
 
     # Execute the command
     result = winrm_remote_shell_ps_script(hostname, ps_script)
-    print(f"RESULT: {result}")
-    # Check the result
-    # if hasattr(result, 'std_err'):
-    #     output = result.std_err.decode('utf-8').strip()
-    #     print(f"std_err: {output}")
-    # if hasattr(result, 'std_out'):
-    #     output = result.std_out.decode('utf-8').strip()
-    #     print(f"std_out: {output}")
 
-    # if "Microsoft Visual C++ 2022 X86" in output:
-    #     return "Installed"
-    # else:
-    #     return "Not Installed"
+    # Define the pattern to search for
+    pattern = r'Microsoft Visual C\+\+ 2022 X86'
+
+    # Search for the pattern in the text
+    matches = re.findall(pattern, result)
+    if matches:
+        return "Installed"
+    else:
+        return "Not Installed"
 
 
 def remote_write_silent_ini_file(yaml_file, hostname):
