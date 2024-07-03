@@ -2,6 +2,7 @@ import yaml
 import winrm
 import re
 import logging
+import conjur_appliance
 from conjur_orchestrator import get_value_from_vault, get_vars, print_announcement_banner
 
 # Set up logging
