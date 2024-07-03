@@ -269,9 +269,9 @@ def precheck_vault_synchronizer(hostname):
         result = "FAILED"
 
     if check_FIPS_enabled(hostname) == "Enabled":
-        logging.info("FIPS is enabled.")
+        logging.info("FIPS mode is enabled.")
     else:
-        logging.error("FIPS is not enabled.")
+        logging.error("FIPS mode is not enabled.")
         result = "FAILED"
 
     return result
