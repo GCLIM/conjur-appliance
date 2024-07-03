@@ -923,7 +923,7 @@ def check_FIPS_enabled(hostname):
     return winrm_remote_shell_ps_script(hostname, ps_script)
 
 
-def c(hostname):
+def check_ms_visual_c_2022_x86(hostname):
     # PowerShell command to check for Microsoft Visual C++ 2022 x86 Redistributable packages
     ps_script = '''
     Get-ItemProperty -Path "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*" |
