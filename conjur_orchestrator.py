@@ -1051,13 +1051,13 @@ def precheck_vault_synchronizer(hostname):
     if check_dotnet_framework_48(hostname) == "Installed":
         logging.info(".Net Framework 4.8 is installed.")
     else:
-        logging.info(".Net Framework 4.8 is not installed.")
+        logging.error(".Net Framework 4.8 is not installed.")
         result = "FAILED"
 
     if check_FIPS_enabled(hostname) == "Enabled":
         logging.info("FIPS is enabled.")
     else:
-        logging.info("FIPS is not enabled.")
+        logging.error("FIPS is not enabled.")
         result = "FAILED"
 
     return result
