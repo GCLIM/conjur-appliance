@@ -923,6 +923,29 @@ def check_FIPS_enabled(hostname):
     return winrm_remote_shell_ps_script(hostname, ps_script)
 
 
+def c(hostname):
+    # PowerShell command to check for Microsoft Visual C++ 2022 x86 Redistributable packages
+    ps_script = '''
+    Get-ItemProperty -Path "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*" |
+    Where-Object { $_.DisplayName -like "Microsoft Visual C++ 2022*" } |
+    Select-Object DisplayName, DisplayVersion
+    '''
+
+    # Execute the command
+    result = winrm_remote_shell_ps_script(hostname, ps_script)
+
+    # Check the result
+    if result.status_code == 0:
+        output = result.std_out.decode('utf-8').strip()
+        if output:
+            return "Installed"
+        else:
+            return "Not Installed"
+    else:
+        print(f"Failed to execute the command. Error: {result.std_err.decode('utf-8').strip()}")
+        raise ValueError("Failed to execute the command.")
+
+
 def remote_write_silent_ini_file(yaml_file, hostname):
     # get vault syncs vars
     vaultsyncs_vars = get_vars('vaultsyncs', yaml_file)
@@ -1052,6 +1075,12 @@ def precheck_vault_synchronizer(hostname):
         logging.info(".Net Framework 4.8 is installed.")
     else:
         logging.error(".Net Framework 4.8 is not installed.")
+        result = "FAILED"
+
+    if check_ms_visual_c_2022_x86(hostname) == "Installed":
+        logging.info("Installed Microsoft Visual C++ 2022 x86 Redistributable packages is installed.")
+    else:
+        logging.error("No Microsoft Visual C++ 2022 x86 Redistributable packages found.")
         result = "FAILED"
 
     if check_FIPS_enabled(hostname) == "Enabled":
