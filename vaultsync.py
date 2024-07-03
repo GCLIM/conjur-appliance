@@ -285,7 +285,7 @@ def deploy_vaultsync_model(yaml_file):
 
     Returns:
     - None
-    """s
+    """
     # vaultsyncs_vars = get_vars('vaultsyncs', yaml_file)
     hostnames = get_vault_synchronizer_hostnames(yaml_file)
     # username = vaultsyncs_vars['ansible_user']
