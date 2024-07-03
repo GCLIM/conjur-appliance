@@ -935,7 +935,7 @@ def check_ms_visual_c_2022_x86(hostname):
     result = winrm_remote_shell_ps_script(hostname, ps_script)
 
     # Check the result
-    if result.status_code == 0:
+    if hasattr(result, 'std_out'):
         output = result.std_out.decode('utf-8').strip()
         if output:
             return "Installed"
