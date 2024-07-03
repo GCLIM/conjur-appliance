@@ -1077,9 +1077,9 @@ def precheck_vault_synchronizer(hostname):
         result = "FAILED"
 
     if check_ms_visual_c_2022_x86(hostname) == "Installed":
-        logging.info("Installed Microsoft Visual C++ 2022 x86 Redistributable packages is installed.")
+        logging.info("Microsoft Visual C++ 2022 x86 Redistributable packages is installed.")
     else:
-        logging.error("No Microsoft Visual C++ 2022 x86 Redistributable packages found.")
+        logging.error("Microsoft Visual C++ 2022 x86 Redistributable packages is not installed.")
         result = "FAILED"
 
     if check_FIPS_enabled(hostname) == "Enabled":
