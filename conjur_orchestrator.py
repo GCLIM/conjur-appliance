@@ -942,7 +942,8 @@ def check_ms_visual_c_2022_x86(hostname):
         else:
             return "Not Installed"
     else:
-        print(f"Failed to execute the command. Error: {result.std_err.decode('utf-8').strip()}")
+        if hasattr(result, 'std_err'):
+            print(f"Failed to execute the command. Error: {result.std_err.decode('utf-8').strip()}")
         raise ValueError("Failed to execute the command.")
 
 
