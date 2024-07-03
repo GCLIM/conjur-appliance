@@ -57,7 +57,6 @@ def get_vault_credentials():
 
 
 def get_value_from_vault(key):
-
     # authenticate to Vault
     vault_url, vault_api_key = get_vault_credentials()
     vault_client = hvac.Client(
@@ -912,6 +911,18 @@ def check_dotnet_framework_48(hostname):
     return winrm_remote_shell_ps_script(hostname, ps_script)
 
 
+def check_FIPS_enabled(hostname):
+    # PowerShell command to check if FIPS is enabled
+    ps_script = '''
+    if ((Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\FipsAlgorithmPolicy").Enabled -eq 1) {
+        Write-Output "Enabled"
+    } else {
+        Write-Output "Disabled"
+    }
+    '''
+    return winrm_remote_shell_ps_script(hostname, ps_script)
+
+
 def remote_write_silent_ini_file(yaml_file, hostname):
     # get vault syncs vars
     vaultsyncs_vars = get_vars('vaultsyncs', yaml_file)
@@ -982,8 +993,8 @@ Set-Content -Path $silentIniPath -Value $newContent -Force
     result = winrm_remote_shell_ps_script(hostname, ps_script)
     return result
 
-def remote_install_vault_synchronizer(yaml_file, hostname):
 
+def remote_install_vault_synchronizer(yaml_file, hostname):
     # get vault syncs vars
     vaultsyncs_vars = get_vars('vaultsyncs', yaml_file)
     # Need to read from Password Vault
@@ -1033,6 +1044,25 @@ cd {vaultsyncs_vars['Sync_Package_Directory']}
     return result
 
 
+def prcheck_vault_synchronizer(hostname):
+
+    result = "PASSED"
+
+    if check_dotnet_framework_48(hostname) == "Installed":
+        logging.info(".Net Framework 4.8 is installed.")
+    else:
+        logging.info(".Net Framework 4.8 is not installed.")
+        result = "FAILED"
+
+    if check_FIPS_enabled(hostname) == "Enabled":
+        logging.info("FIPS is enabled.")
+    else:
+        logging.info("FIPS is not enabled.")
+        result = "FAILED"
+
+    return result
+
+
 def deploy_vaultsync_model(yaml_file):
     """
     Deploys a vaultsync model based on the provided YAML file.
@@ -1045,15 +1075,14 @@ def deploy_vaultsync_model(yaml_file):
     """
     vaultsyncs_vars = get_vars('vaultsyncs', yaml_file)
     hostnames = get_vault_synchronizer_hostnames(yaml_file)
-    username = vaultsyncs_vars['ansible_user']
-    password = vaultsyncs_vars['ansible_password']
+    # username = vaultsyncs_vars['ansible_user']
+    # password = vaultsyncs_vars['ansible_password']
 
     for hostname in hostnames['vaultsyncs']:
         print_announcement_banner(f"Deploying Vault Synchronizer on {hostname}")
         logging.info("Precheck...")
-        result = check_dotnet_framework_48(hostname)
-        if result == "Installed":
-            logging.info(".Net Framework 4.8 is installed.")
+        result = prcheck_vault_synchronizer()
+        if result == "PASSED":
             logging.info("Precheck...Passed")
             logging.info("Write Silent.ini for Vault Synchronizer...")
             result = remote_write_silent_ini_file(yaml_file, hostname)
@@ -1061,7 +1090,6 @@ def deploy_vaultsync_model(yaml_file):
             logging.info("Install Vault Synchronizer...")
             result = remote_install_vault_synchronizer(yaml_file, hostname)
         else:
-            logging.error(f".Net Framework 4.8 is not installed.")
             logging.error("Precheck...Failed")
     return
 
