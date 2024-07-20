@@ -74,13 +74,12 @@ def get_value_from_vault(key):
     return value
 
 
-# def get_admin_password():
-#     """Fetch ADMIN_PASSWORD from environment variables."""
-#     key = os.getenv('ADMIN_PASSWORD')
-#     if not key:
-#         raise ValueError("ADMIN_PASSWORD environment variable not set.")
-#     return key
-
+def get_admin_password():
+    """Fetch ADMIN_PASSWORD from environment variables."""
+    key = os.getenv('ADMIN_PASSWORD')
+    if not key:
+        key = get_value_from_vault('CONJUR_ADMIN_PASSWORD')
+    return key
 
 # async def get_ssh_private_key():
 #     """Fetch the SSH private key from environment variables."""
@@ -543,7 +542,7 @@ def leader_deployment_model(yaml_file):
         leader_altnames = ",".join(all_hostnames)
 
         logging.info(f"Leader cluster nodes: {leader_altnames}")
-        admin_password = get_value_from_vault('CONJUR_ADMIN_PASSWORD')
+        admin_password = get_admin_password()
 
         configure_leader_command = f"""{DOCKER} exec {host_attributes['name']} evoke configure leader --accept-eula --hostname {leader_vars['load_balancer_dns']} --leader-altnames {leader_altnames} --admin-password {admin_password} {leader_vars['account_name']}"""
 
