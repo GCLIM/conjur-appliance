@@ -32,7 +32,7 @@ jobs:
             - name: Set up Python
               uses: actions/setup-python@v4
               with:
-                python-version: 3.11.7 # Specify the Python version
+                python-version: 3.11.9 # Specify the Python version
 
             - name: Install dependencies
               run: |
@@ -43,4 +43,4 @@ jobs:
               env:
                 VAULT_URL: ${{ secrets.VAULT_URL }}
                 VAULT_API_KEY: ${{ secrets.VAULT_API_KEY }}
-              run: python3 conjur_orchestrator.py -r leader -i inventories/dev.yml
+              run: python3.11 conjur_orchestrator.py -r leader -i inventories/dev.yml
