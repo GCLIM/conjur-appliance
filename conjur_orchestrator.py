@@ -630,9 +630,11 @@ if [ -d "{directory}" ]; then
     git -C {directory} pull
 else
     git clone {repository}
+    python3.11 -m venv venv
 fi
 cd {directory}
-python3 -m pip install --user --upgrade pip
+source venv/bin/activate
+pip install --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 {env_str} python3 conjur_orchestrator.py -o leader -i {yaml_file}
 """
@@ -727,11 +729,13 @@ if [ -d "{directory}" ]; then
     git -C {directory} pull
 else
     git clone {repository}
+    python3.11 -m venv venv
 fi
 cd {directory}
-python3 -m pip install --user --upgrade pip
+source venv/bin/activate
+pip install --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_appliance.py -m deploy -n {host_attributes['name']} -t {host_attributes['type']} -reg {followers_vars['registry']}
+python3.11 conjur_appliance.py -m deploy -n {host_attributes['name']} -t {host_attributes['type']} -reg {followers_vars['registry']}
 """
         try:
             print_announcement_banner(f"Deploying follower: {hostname}")
@@ -771,11 +775,13 @@ if [ -d "{directory}" ]; then
     git -C {directory} pull
 else
     git clone {repository}
+    python3.11 -m venv venv
 fi
 cd {directory}
-python3 -m pip install --user --upgrade pip
+source venv/bin/activate
+pip install --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_appliance.py -m retire
+python3.11 conjur_appliance.py -m retire
 """
         print_announcement_banner(f"Retiring leader cluster: {hostname}")
         asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=commands))
@@ -810,11 +816,13 @@ if [ -d "{directory}" ]; then
     git -C {directory} pull
 else
     git clone {repository}
+    python3.11 -m venv venv
 fi
 cd {directory}
-python3 -m pip install --user --upgrade pip
+source venv/bin/activate
+pip install --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-python3 conjur_appliance.py -m retire
+python3.11 conjur_appliance.py -m retire
 """
         print_announcement_banner(f"Retiring follower: {hostname}")
         asyncio.run(remote_run_with_key(hostname, port=SSH_PORT, commands=commands))
