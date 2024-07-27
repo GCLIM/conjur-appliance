@@ -1,20 +1,20 @@
 [req]
-distinguished_name = conjur_leader_cluster
+distinguished_name = conjur-dev-leader
 req_extensions = v3_req
 prompt = no
 
-[conjur_leader_cluster]
+[conjur-dev-leader]
 C = JP
 ST = Chiba
 L = Chiba
 O = GCloud
 OU = Tech
-CN = conjurleader.gcloud101.com
+CN = conjur-dev-leader.gcloud101.com
 emailAddress = admin@gcloud101.com
 
 [v3_req]
-keyUsage = keyEncipherment, dataEncipherment
-extendedKeyUsage = serverAuth
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
 subjectAltName = @alt_names
 
 [alt_names]

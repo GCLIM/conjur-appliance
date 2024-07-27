@@ -7,7 +7,7 @@ leader:
   vars:
     ansible_user: gclim
     registry: dockerhub.gcloud101.com/conjur-appliance:13.3.2
-    load_balancer_dns: conjurleader.gcloud101.com
+    load_balancer_dns: conjur-dev-leader.gcloud101.com
     account_name: conjur_account
     ca_chain: /home/gclim/certificates/conjur-dev-leader-ca-chain.pem
     master_key: /home/gclim/certificates/conjur-dev-leader-master-key.pem
