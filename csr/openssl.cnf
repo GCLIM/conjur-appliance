@@ -18,6 +18,7 @@ extendedKeyUsage = serverAuth, clientAuth
 subjectAltName = @alt_names
 
 [alt_names]
-DNS.1 = conjur01.gcloud101.com
-DNS.2 = conjur02.gcloud101.com
-DNS.3 = conjur03.gcloud101.com
+DNS.1 = conjur-dev-leader.gcloud101.com
+DNS.2 = conjur01.gcloud101.com
+DNS.3 = conjur02.gcloud101.com
+DNS.4 = conjur03.gcloud101.com
