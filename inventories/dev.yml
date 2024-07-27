@@ -6,7 +6,7 @@ leader:
       type: leader
   vars:
     ansible_user: gclim
-    registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
+    registry: dockerhub.gcloud101.com/conjur-appliance:13.3.2
     load_balancer_dns: conjur-dev-leader.gcloud101.com
     account_name: conjur_account
     ca_chain: /home/gclim/certificates/conjur-dev-leader-ca-chain.pem
@@ -25,7 +25,7 @@ standbys:
       type: standby
   vars:
     ansible_user: gclim
-    registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
+    registry: dockerhub.gcloud101.com/conjur-appliance:13.3.2
 
 followers:
   hosts:
@@ -43,7 +43,7 @@ followers:
       type: follower
   vars:
     ansible_user: gclim
-    registry: dockerhub.gcloud101.com/conjur-appliance:13.3.0.1
+    registry: dockerhub.gcloud101.com/conjur-appliance:13.3.2
     load_balancer_dns: conjur-dev.gcloud101.com
     follower_key: /home/gclim/cyberark/dap/certificates/conjur-dev-follower-key.pem
     follower_cert: /home/gclim/cyberark/dap/certificates/conjur-dev-follower-cert.pem
