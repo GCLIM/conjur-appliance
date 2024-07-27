@@ -627,11 +627,12 @@ def deploy_leader_cluster_model(yaml_file):
         commands = f"""
 if [ -d "{directory}" ]; then
     git -C {directory} pull
+    cd {directory}
 else
     git clone {repository}
+    cd {directory}
     python3.11 -m venv venv
 fi
-cd {directory}
 source venv/bin/activate
 pip install --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
@@ -726,11 +727,12 @@ def deploy_follower_model(yaml_file):
         commands = f"""
 if [ -d "{directory}" ]; then
     git -C {directory} pull
+    cd {directory}
 else
     git clone {repository}
+    cd {directory}
     python3.11 -m venv venv
 fi
-cd {directory}
 source venv/bin/activate
 pip install --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
@@ -772,11 +774,12 @@ def retire_leader_cluster_model(yaml_file):
         commands = f"""
 if [ -d "{directory}" ]; then
     git -C {directory} pull
+    cd {directory}
 else
     git clone {repository}
+    cd {directory}
     python3.11 -m venv venv
 fi
-cd {directory}
 source venv/bin/activate
 pip install --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
@@ -813,11 +816,12 @@ def retire_follower_model(yaml_file):
         commands = f"""
 if [ -d "{directory}" ]; then
     git -C {directory} pull
+    cd {directory}
 else
     git clone {repository}
+    cd {directory}
     python3.11 -m venv venv
 fi
-cd {directory}
 source venv/bin/activate
 pip install --upgrade pip
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
