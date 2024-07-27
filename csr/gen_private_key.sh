@@ -1,0 +1,1 @@
+openssl genpkey -algorithm RSA -out conjur-dev-leader-master-key.pem

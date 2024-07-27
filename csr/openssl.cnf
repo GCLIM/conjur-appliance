@@ -1,0 +1,24 @@
+[req]
+distinguished_name = conjur_leader_cluster
+req_extensions = v3_req
+prompt = no
+
+[conjur_leader_cluster]
+C = Japan
+ST = Chiba
+L = Chiba
+O = GCloud
+OU = Tech
+CN = conjurleader.gcloud101.com
+emailAddress = admin@gcloud101.com
+
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = conjurleader.gcloud101.com
+DNS.2 = conjur01.gcloud101.com
+DNS.3 = conjur02.gcloud101.com
+DNS.4 = conjur03.gcloud101.com
