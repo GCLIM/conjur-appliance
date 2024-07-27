@@ -23,7 +23,7 @@ on:
 
 jobs:
     Deploy_Leader_Cluster:
-        runs-on: ansible
+        runs-on: orchestrator
         environment: ${{ github.event.inputs.environment }}
         steps:
             - name: Checkout repository
@@ -32,7 +32,7 @@ jobs:
             - name: Set up Python
               uses: actions/setup-python@v4
               with:
-                python-version: 3.11.7 # Specify the Python version
+                python-version: 3.11.9 # Specify the Python version
 
             - name: Install dependencies
               run: |
@@ -41,9 +41,8 @@ jobs:
 
             - name: Run script
               env:
-                SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-                SSH_USERNAME: ${{ vars.USER }}
-                ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+                VAULT_URL: ${{ secrets.VAULT_URL }}
+                VAULT_API_KEY: ${{ secrets.VAULT_API_KEY }}
               run: python3 conjur_orchestrator.py -d leader -i inventories/dev.yml
 
 
