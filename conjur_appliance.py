@@ -451,7 +451,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         command = ""
         if type in ["leader", "standby"]:
             # print(DOCKER_PARAMETER_LEADER_STANDBY)
-            command = f"{DOCKER} run --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
+            command = f"{DOCKER} run --rm --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
         elif type == "follower":
             # print(DOCKER_PARAMETER_FOLLOWER)
             command = f"{DOCKER} run --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
@@ -478,10 +478,10 @@ def deploy_model(name: str, type: str, registry: str) -> int:
     
     [Service]
     Restart=always
-    ExecStartPre=-/usr/bin/podman stop -t 5 {name}
-    ExecStartPre=-/usr/bin/podman rm {name}
-    ExecStart=/usr/bin/{command_without_detach}
-    
+    ExecStartPre=-/usr/bin/podman start {name}
+    ExecStop=/usr/bin/podman stop -t 5 {name}
+    ExecStart=/usr/bin/podman start -a {name}
+
     [Install]
     WantedBy=default.target
     """)
