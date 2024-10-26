@@ -629,10 +629,14 @@ def retire_model():
         # Run retirement commands
         for retire_item, retire_command in RETIREMENT_LIST:
             print(f"'{retire_item}'...", end="")
-            if run_subprocess(retire_command, shell=True).returncode == 0:
-                print("...Done")
-            else:
-                print("...Failed")
+            try:
+                if run_subprocess(retire_command, shell=True).returncode == 0:
+                    print("...Done")
+                else:
+                    print("...Failed")
+            except subprocess.CalledProcessError as e:
+                # Print error message and return
+                print(f"Error: {e}")
 
         # Reload systemd
         if run_subprocess(["systemctl", "--user", "daemon-reload"]).returncode == 0:
