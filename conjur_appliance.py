@@ -25,8 +25,7 @@ DEPLOYMENT_LIST = (
 
 RETIREMENT_LIST = (
     ("Delete Conjur system folders", "rm -rf $HOME/cyberark"),
-    ("Delete conjur.service file", "rm $HOME/.config/systemd/user/conjur.service"),
-    ("Delete default.target.wants", "rm $HOME/.config/systemd/user/default.target.wants/conjur.service")
+    ("Delete conjur.service file", "rm $HOME/.config/systemd/user/conjur.service")
 )
 
 # EXCLUDE
