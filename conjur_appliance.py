@@ -609,50 +609,47 @@ def retire_model():
     if status in ["Deployed", "Failed"]:
         print(f"Retiring '{name}'...")
 
+        if is_service_running(CONJUR_SERVICE_NAME):
+            # Stop and disable the service
+            stop_service(CONJUR_SERVICE_NAME)
+            disable_service(CONJUR_SERVICE_NAME)
+
         # Stop and remove all containers
-        command = f"{DOCKER} stop {name} && {DOCKER} rm $({DOCKER} ps -qa)"
         try:
-
-            if is_service_running(CONJUR_SERVICE_NAME):
-                # Stop and disable the service
-                stop_service(CONJUR_SERVICE_NAME)
-                disable_service(CONJUR_SERVICE_NAME)
-
-            if is_container_running(name):
-                if run_subprocess(command, shell=True).returncode == 0:
-                    print("...Done")
-                else:
-                    print("...Failed")
-
-            # Update the deployment status to 'Retired'
-            deployment_info["status"] = "Retired"
-            update_deployment_info(deployment_info)
-
-            # Run retirement commands
-            for retire_item, retire_command in RETIREMENT_LIST:
-                print(f"'{retire_item}'...", end="")
-                if run_subprocess(retire_command, shell=True).returncode == 0:
-                    print("...Done")
-                else:
-                    print("...Failed")
-
-            # Reload systemd
-            if run_subprocess(["systemctl", "--user", "daemon-reload"]).returncode == 0:
+            command = f"{DOCKER} stop {name} && {DOCKER} rm $({DOCKER} ps -qa)"
+            if run_subprocess(command, shell=True).returncode == 0:
                 print("...Done")
             else:
                 print("...Failed")
 
-            # Disable linger for the current user
-            disable_linger(os.getlogin())
-
-            # Print success message
-            print(f"'{name}' retired successfully.")
-            return
-
         except subprocess.CalledProcessError as e:
             # Print error message and return
             print(f"Error: {e}")
-            return
+
+        # Run retirement commands
+        for retire_item, retire_command in RETIREMENT_LIST:
+            print(f"'{retire_item}'...", end="")
+            if run_subprocess(retire_command, shell=True).returncode == 0:
+                print("...Done")
+            else:
+                print("...Failed")
+
+        # Reload systemd
+        if run_subprocess(["systemctl", "--user", "daemon-reload"]).returncode == 0:
+            print("...Done")
+        else:
+            print("...Failed")
+
+        # Disable linger for the current user
+        disable_linger(os.getlogin())
+
+        # Update the deployment status to 'Retired'
+        deployment_info["status"] = "Retired"
+        update_deployment_info(deployment_info)
+
+        # Print success message
+        print(f"'{name}' retired successfully.")
+        return
 
     else:
         # Print message if the deployment status is not 'Deployed'
