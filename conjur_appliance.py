@@ -624,10 +624,11 @@ def retire_model():
             else:
                 print("...Failed")
 
-            if run_subprocess(command, shell=True).returncode == 0:
-                print("...Done")
-            else:
-                print("...Failed")
+            if is_container_running(name):
+                if run_subprocess(command, shell=True).returncode == 0:
+                    print("...Done")
+                else:
+                    print("...Failed")
 
             # Update the deployment status to 'Retired'
             deployment_info["status"] = "Retired"
