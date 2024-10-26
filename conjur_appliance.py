@@ -441,7 +441,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         print(f"Starting '{name}'...", end="")
 
         # Export seccomp profile from image
-        command = f"{DOCKER} run --entrypoint '/bin/cat' {registry} /usr/share/doc/conjur/examples/seccomp.json > {HOME}/cyberark/conjur/security/seccomp.json"
+        command = f"{DOCKER} run --rm --entrypoint '/bin/cat' {registry} /usr/share/doc/conjur/examples/seccomp.json > {HOME}/cyberark/conjur/security/seccomp.json"
         if run_subprocess(command, shell=True).returncode == 0:
             print("Exported seccomp profile from image.")
         else:
@@ -452,7 +452,7 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         command = ""
         if type in ["leader", "standby"]:
             # print(DOCKER_PARAMETER_LEADER_STANDBY)
-            command = f"{DOCKER} run --rm --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
+            command = f"{DOCKER} run --name {name} {DOCKER_PARAMETER_LEADER_STANDBY} {registry}"
         elif type == "follower":
             # print(DOCKER_PARAMETER_FOLLOWER)
             command = f"{DOCKER} run --name {name} {DOCKER_PARAMETER_FOLLOWER} {registry}"
