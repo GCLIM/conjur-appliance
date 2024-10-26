@@ -473,7 +473,8 @@ def deploy_model(name: str, type: str, registry: str) -> int:
         # Create or edit conjur.service file
         command_without_detach = command.replace("--detach ", "")
         with open("conjur.service", "w") as f:
-            f.write(f"""[Unit]
+            f.write(f"""
+    [Unit]
     Description={name} container
     
     [Service]
