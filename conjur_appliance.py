@@ -26,6 +26,7 @@ DEPLOYMENT_LIST = (
 RETIREMENT_LIST = (
     ("Delete Conjur system folders", "rm -rf $HOME/cyberark"),
     ("Delete conjur.service file", "rm $HOME/.config/systemd/user/conjur.service"),
+    ("Delete default.target.wants", "rm $HOME/.config/systemd/user/default.target.wants/conjur.service")
 )
 
 # EXCLUDE
@@ -618,12 +619,6 @@ def retire_model():
                 stop_service(CONJUR_SERVICE_NAME)
                 disable_service(CONJUR_SERVICE_NAME)
 
-            # Reload systemd
-            if run_subprocess(["systemctl", "--user", "daemon-reload"]).returncode == 0:
-                print("...Done")
-            else:
-                print("...Failed")
-
             if is_container_running(name):
                 if run_subprocess(command, shell=True).returncode == 0:
                     print("...Done")
@@ -641,6 +636,12 @@ def retire_model():
                     print("...Done")
                 else:
                     print("...Failed")
+
+            # Reload systemd
+            if run_subprocess(["systemctl", "--user", "daemon-reload"]).returncode == 0:
+                print("...Done")
+            else:
+                print("...Failed")
 
             # Disable linger for the current user
             disable_linger(os.getlogin())
